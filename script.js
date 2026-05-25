@@ -84,12 +84,25 @@ class ChessGame {
     
     async initStockfish() {
         try {
-            // Use Stockfish.js from CDN - it uses Web Workers (COI not needed for this approach)
-            const stockfishUrl = 'https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js';
+            // Use latest Stockfish WASM version for better performance
+            // Stockfish 10 with WebAssembly support compiled from official Stockfish
+            const stockfishUrl = 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.wasm.js';
             
-            // Create a blob URL for the worker to avoid COOP issues
-            const response = await fetch(stockfishUrl);
-            const scriptContent = await response.text();
+            // Fallback to regular stockfish.js if WASM version not available
+            let scriptContent;
+            try {
+                const response = await fetch(stockfishUrl);
+                if (!response.ok) throw new Error('WASM version not found');
+                scriptContent = await response.text();
+            } catch (e) {
+                console.log('Falling back to Stockfish JS version');
+                const fallbackUrl = 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js';
+                const response = await fetch(fallbackUrl);
+                scriptContent = await response.text();
+            }
+            
+            // Create a Blob URL for the worker to avoid COOP/COEP issues
+            // This bypasses Cross-Origin Opener Policy restrictions without needing special headers
             const blob = new Blob([scriptContent], { type: 'application/javascript' });
             const workerUrl = URL.createObjectURL(blob);
             
