@@ -93,7 +93,7 @@ class ChessGame {
     async initStockfish() {
         try {
             // Use latest Stockfish WASM version for better performance
-            const stockfishUrl = 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.wasm.js';
+            const stockfishUrl = 'https://cdn.jsdelivr.net/npm/stockfish.js@latest/stockfish.wasm.js';
             
             let scriptContent;
             try {
@@ -102,7 +102,7 @@ class ChessGame {
                 scriptContent = await response.text();
             } catch (e) {
                 console.log('Falling back to Stockfish JS version');
-                const fallbackUrl = 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js';
+                const fallbackUrl = 'https://cdn.jsdelivr.net/npm/stockfish.js@latest/stockfish.js';
                 const response = await fetch(fallbackUrl);
                 scriptContent = await response.text();
             }
@@ -113,14 +113,18 @@ class ChessGame {
             
             this.stockfish = new Worker(workerUrl);
             
+            let evalReceived = false;
+            
             this.stockfish.onmessage = (event) => {
                 const message = event.data;
+                console.log('Stockfish:', message);
                 
                 // Parse depth and nodes
                 if (message.startsWith('info') && message.includes('depth')) {
                     const depthMatch = message.match(/depth (\d+)/);
                     const nodesMatch = message.match(/nodes (\d+)/);
                     const pvMatch = message.match(/pv\s+(\S+)/);
+                    const scoreMatch = message.match(/score (cp|mate) (-?\d+)/);
                     
                     if (depthMatch) {
                         this.currentDepth = parseInt(depthMatch[1]);
@@ -136,11 +140,8 @@ class ChessGame {
                         this.currentBestMove = pvMatch[1];
                         this.bestMoveElement.textContent = this.currentBestMove;
                     }
-                }
-                
-                // Parse evaluation from "info depth X score cp Y" or "score mate Z"
-                if (message.startsWith('info') && message.includes('score')) {
-                    const scoreMatch = message.match(/score (cp|mate) (-?\d+)/);
+                    
+                    // Parse evaluation from "info depth X score cp Y" or "score mate Z"
                     if (scoreMatch) {
                         const [, type, value] = scoreMatch;
                         let evalValue = parseFloat(value);
@@ -156,8 +157,14 @@ class ChessGame {
                         }
                         
                         this.evaluation = evalValue;
+                        evalReceived = true;
                         this.updateEvalBar();
                     }
+                }
+                
+                // Handle "bestmove" message
+                if (message.startsWith('bestmove')) {
+                    console.log('Best move received:', message);
                 }
             };
             
