@@ -189,6 +189,41 @@ header h1 {
     transform: translateY(0);
 }
 
+.piece-selector {
+    padding: 12px 24px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-weight: bold;
+    outline: none;
+}
+
+.piece-selector option {
+    background: white;
+    color: #333;
+}
+
+.piece-selector:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.piece-image {
+    width: 50px;
+    height: 50px;
+    cursor: grab;
+    transition: transform 0.1s;
+    user-select: none;
+}
+
+.piece-image:active {
+    cursor: grabbing;
+}
+
 .move-history {
     background: #f5f5f5;
     padding: 20px;

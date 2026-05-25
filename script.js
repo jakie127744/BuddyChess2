@@ -1,4 +1,4 @@
-// Chess game logic using chess.js
+// Chess game logic using chess.js with selectable piece sets from Wikimedia Commons
 class ChessGame {
     constructor() {
         this.game = new Chess();
@@ -11,37 +11,135 @@ class ChessGame {
         this.validMoves = [];
         this.isFlipped = false;
         this.lastMove = null;
-
-        this.pieces = {
-            'w': {
-                'p': '<svg viewBox="0 0 45 45" class="piece"><path d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>',
-                'n': '<svg viewBox="0 0 45 45" class="piece"><path d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/><path d="M24 18c.38 2.32-4.68 1.97-5 0 .38-2.32 4.68-1.97 5 0z" fill="#000"/><path d="M9.5 25.5A4.5 4.5 0 1 1 18.5 25.5 4.5 4.5 0 1 1 9.5 25.5z" fill="#fff" stroke="#000" stroke-width="1.5"/><path d="M15 15.5c-1.67 2.97-5.5 4.5-9 4.5" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>',
-                'b': '<svg viewBox="0 0 45 45" class="piece"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 36c3.39-.97 9.11-1.45 13.5-1.45 4.38 0 10.11.48 13.5 1.45V30H9v6zm0 0c0 1.66 1.34 3 3 3h21c1.66 0 3-1.34 3-3v-2.25c-3.75-1.5-11.25-1.5-15 0V36zM22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z"/><path d="M17.5 26h10M15 30h15m-7.5-14.5v5M20 18h5" stroke-linejoin="miter"/></g></svg>',
-                'r': '<svg viewBox="0 0 45 45" class="piece"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zM12 36v-4h21v4H12zM11 14V9h4v2h5V9h5v2h5V9h4v5" stroke-linecap="butt"/><path d="M34 14l-3 3H14l-3-3"/><path d="M31 17v12.5c0 2.76-2.24 5-5 5h-7c-2.76 0-5-2.24-5-5V17"/><path d="M31 29.5l1.5 2.5h-20l1.5-2.5"/><path d="M11 14h23" fill="none" stroke-linejoin="miter"/></g></svg>',
-                'q': '<svg viewBox="0 0 45 45" class="piece"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM24.5 7.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM10.5 20a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM38.5 20a2 2 0 1 1-4 0 2 2 0 1 1 4 0z"/><path d="M9 26c8.5-1.5 21-1.5 27 0l2-12-7 11V11l-5.5 13.5-3-15-3 15-5.5-13.5V25l-7-11L9 26z" stroke-linecap="butt"/><path d="M9 26c0 2 1.5 2 2.5 4 1 2.5 3 4.5 3 4.5s5.5-2 11-2 11 2 11 2 2-2 3-4.5c1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z" stroke-linecap="butt"/><path d="M11.5 30c3.5-1 18.5-1 22 0M12 33.5c6-1 15-1 21 0" fill="none"/></g></svg>',
-                'k': '<svg viewBox="0 0 45 45" class="piece"><g fill="#fff" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11.63V6M20 8h5" stroke-linejoin="miter"/><path d="M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5" fill="#fff" stroke-linecap="butt"/><path d="M11.5 37c5.5 3.5 15.5 3.5 21 0v-7s9-4.5 6-10.5c-4-1-5 2-8 2s-4-1-4-1v-3h-5v3s-1 1-4 1-4-3-8-2c-3 6 6 10.5 6 10.5v7z" fill="#fff"/><path d="M11.5 30c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0" fill="none"/></g></svg>'
+        this.pieceSet = 'cburnett'; // Default piece set
+        
+        // Piece sets from Wikimedia Commons
+        this.pieceSets = {
+            'cburnett': {
+                name: 'ChessBurnett',
+                url: 'https://upload.wikimedia.org/wikipedia/commons/',
+                pieces: {
+                    'w': {
+                        'p': '4/40/pawn.svg',
+                        'n': 'f/f0/Knight.svg',
+                        'b': 'b/b1/Bishop.svg',
+                        'r': 'a/a0/Rook.svg',
+                        'q': '4/47/Queen.svg',
+                        'k': '4/42/King.svg'
+                    },
+                    'b': {
+                        'p': 'c/c7/Pawn.svg',
+                        'n': 'e/ef/Black_knight.svg',
+                        'b': '9/98/Bishop.svg',
+                        'r': 'f/ff/Rook.svg',
+                        'q': '4/4b/Queen.svg',
+                        'k': 'f/f0/King.svg'
+                    }
+                }
             },
-            'b': {
-                'p': '<svg viewBox="0 0 45 45" class="piece"><path d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>',
-                'n': '<svg viewBox="0 0 45 45" class="piece"><path d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/><path d="M24 18c.38 2.32-4.68 1.97-5 0 .38-2.32 4.68-1.97 5 0z" fill="#fff"/><path d="M9.5 25.5A4.5 4.5 0 1 1 18.5 25.5 4.5 4.5 0 1 1 9.5 25.5z" stroke="#000" stroke-width="1.5"/><path d="M15 15.5c-1.67 2.97-5.5 4.5-9 4.5" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>',
-                'b': '<svg viewBox="0 0 45 45" class="piece"><g stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 36c3.39-.97 9.11-1.45 13.5-1.45 4.38 0 10.11.48 13.5 1.45V30H9v6zm0 0c0 1.66 1.34 3 3 3h21c1.66 0 3-1.34 3-3v-2.25c-3.75-1.5-11.25-1.5-15 0V36zM22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z"/><path d="M17.5 26h10M15 30h15m-7.5-14.5v5M20 18h5" stroke-linejoin="miter"/></g></svg>',
-                'r': '<svg viewBox="0 0 45 45" class="piece"><g stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zM12 36v-4h21v4H12zM11 14V9h4v2h5V9h5v2h5V9h4v5" stroke-linecap="butt"/><path d="M34 14l-3 3H14l-3-3"/><path d="M31 17v12.5c0 2.76-2.24 5-5 5h-7c-2.76 0-5-2.24-5-5V17"/><path d="M31 29.5l1.5 2.5h-20l1.5-2.5"/><path d="M11 14h23" fill="none" stroke-linejoin="miter"/></g></svg>',
-                'q': '<svg viewBox="0 0 45 45" class="piece"><g stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM24.5 7.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM10.5 20a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM38.5 20a2 2 0 1 1-4 0 2 2 0 1 1 4 0z"/><path d="M9 26c8.5-1.5 21-1.5 27 0l2-12-7 11V11l-5.5 13.5-3-15-3 15-5.5-13.5V25l-7-11L9 26z" stroke-linecap="butt"/><path d="M9 26c0 2 1.5 2 2.5 4 1 2.5 3 4.5 3 4.5s5.5-2 11-2 11 2 11 2 2-2 3-4.5c1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z" stroke-linecap="butt"/><path d="M11.5 30c3.5-1 18.5-1 22 0M12 33.5c6-1 15-1 21 0" fill="none"/></g></svg>',
-                'k': '<svg viewBox="0 0 45 45" class="piece"><g stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11.63V6M20 8h5" stroke-linejoin="miter"/><path d="M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5" stroke-linecap="butt"/><path d="M11.5 37c5.5 3.5 15.5 3.5 21 0v-7s9-4.5 6-10.5c-4-1-5 2-8 2s-4-1-4-1v-3h-5v3s-1 1-4 1-4-3-8-2c-3 6 6 10.5 6 10.5v7z" stroke-linecap="butt"/><path d="M11.5 30c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0" fill="none"/></g></svg>'
+            'merida': {
+                name: 'Merida',
+                url: 'https://upload.wikimedia.org/wikipedia/commons/',
+                pieces: {
+                    'w': {
+                        'p': '9/92/Chess_plt45.svg',
+                        'n': '7/70/Chess_nlt45.svg',
+                        'b': 'b/b1/Chess_blt45.svg',
+                        'r': '7/72/Chess_rlt45.svg',
+                        'q': '4/47/Chess_qlt45.svg',
+                        'k': '4/42/Chess_klt45.svg'
+                    },
+                    'b': {
+                        'p': 'c/c7/Chess_pdt45.svg',
+                        'n': 'e/ef/Chess_ndt45.svg',
+                        'b': '9/98/Chess_bdt45.svg',
+                        'r': 'f/ff/Chess_rdt45.svg',
+                        'q': '4/4b/Chess_qdt45.svg',
+                        'k': 'f/f0/Chess_kdt45.svg'
+                    }
+                }
+            },
+            'alpha': {
+                name: 'Alpha',
+                url: 'https://upload.wikimedia.org/wikipedia/commons/',
+                pieces: {
+                    'w': {
+                        'p': '4/45/Chess_plt45_alpha.svg',
+                        'n': '7/73/Chess_nlt45_alpha.svg',
+                        'b': 'b/b4/Chess_blt45_alpha.svg',
+                        'r': '7/74/Chess_rlt45_alpha.svg',
+                        'q': '4/49/Chess_qlt45_alpha.svg',
+                        'k': '4/44/Chess_klt45_alpha.svg'
+                    },
+                    'b': {
+                        'p': 'c/c9/Chess_pdt45_alpha.svg',
+                        'n': 'e/e9/Chess_ndt45_alpha.svg',
+                        'b': '9/96/Chess_bdt45_alpha.svg',
+                        'r': 'f/f9/Chess_rdt45_alpha.svg',
+                        'q': '4/4d/Chess_qdt45_alpha.svg',
+                        'k': 'f/f2/Chess_kdt45_alpha.svg'
+                    }
+                }
+            },
+            'neo': {
+                name: 'Neo',
+                url: 'https://upload.wikimedia.org/wikipedia/commons/',
+                pieces: {
+                    'w': {
+                        'p': '1/10/Chess_plt45_neo.svg',
+                        'n': '7/76/Chess_nlt45_neo.svg',
+                        'b': 'b/b7/Chess_blt45_neo.svg',
+                        'r': '7/78/Chess_rlt45_neo.svg',
+                        'q': '4/4f/Chess_qlt45_neo.svg',
+                        'k': '4/46/Chess_klt45_neo.svg'
+                    },
+                    'b': {
+                        'p': 'c/c1/Chess_pdt45_neo.svg',
+                        'n': 'e/e3/Chess_ndt45_neo.svg',
+                        'b': '9/9a/Chess_bdt45_neo.svg',
+                        'r': 'f/f1/Chess_rdt45_neo.svg',
+                        'q': '4/41/Chess_qdt45_neo.svg',
+                        'k': 'f/f4/Chess_kdt45_neo.svg'
+                    }
+                }
             }
         };
+    }
+    
+    getPieceSvg(color, type) {
+        const set = this.pieceSets[this.pieceSet];
+        const piecePath = set.pieces[color][type];
+        return `<img src="${set.url}${piecePath}" alt="${color}${type}" class="piece-image" draggable="false">`;
     }
 
     init() {
         this.renderBoard();
         this.updateStatus();
         this.setupEventListeners();
+        this.populatePieceSelector();
+    }
+
+    populatePieceSelector() {
+        const selector = document.getElementById('piece-set-selector');
+        for (const [key, value] of Object.entries(this.pieceSets)) {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = value.name;
+            if (key === this.pieceSet) {
+                option.selected = true;
+            }
+            selector.appendChild(option);
+        }
     }
 
     setupEventListeners() {
         document.getElementById('new-game').addEventListener('click', () => this.newGame());
         document.getElementById('flip-board').addEventListener('click', () => this.flipBoard());
         document.getElementById('undo-move').addEventListener('click', () => this.undoMove());
+        document.getElementById('piece-set-selector').addEventListener('change', (e) => {
+            this.pieceSet = e.target.value;
+            this.renderBoard();
+        });
     }
 
     renderBoard() {
@@ -61,8 +159,7 @@ class ChessGame {
 
                 const piece = board[actualRow][actualCol];
                 if (piece) {
-                    const pieceSvg = this.pieces[piece.color][piece.type];
-                    square.innerHTML = pieceSvg;
+                    square.innerHTML = this.getPieceSvg(piece.color, piece.type);
                 }
 
                 // Highlight selected square
@@ -246,11 +343,11 @@ class ChessGame {
         }
 
         this.whiteCapturedElement.innerHTML = capturedWhite.map(p => 
-            `<span>${this.pieces['w'][p]}</span>`
+            `<span>${this.getPieceSvg('w', p)}</span>`
         ).join('');
 
         this.blackCapturedElement.innerHTML = capturedBlack.map(p => 
-            `<span>${this.pieces['b'][p]}</span>`
+            `<span>${this.getPieceSvg('b', p)}</span>`
         ).join('');
     }
 
