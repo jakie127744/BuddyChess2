@@ -5,16 +5,24 @@ class ChessGame {
         this.boardElement = document.getElementById('chessboard');
         this.statusText = document.getElementById('status-text');
         this.moveListElement = document.getElementById('move-list');
-        this.capturedWhiteElement = document.getElementById('captured-white');
-        this.capturedBlackElement = document.getElementById('captured-black');
+        this.capturedByWhiteElement = document.getElementById('captured-by-white');
+        this.capturedByBlackElement = document.getElementById('captured-by-black');
         this.pieceSetSelector = document.getElementById('piece-set-selector');
         this.evalBarFill = document.getElementById('eval-bar-fill');
         this.evalText = document.getElementById('eval-text');
+        this.engineDepth = document.getElementById('engine-depth');
+        this.engineNodes = document.getElementById('engine-nodes');
+        this.bestMoveElement = document.getElementById('best-move');
+        this.pgnTextElement = document.getElementById('pgn-text');
+        this.gameResultElement = document.getElementById('game-result');
         
         this.selectedSquare = null;
         this.flipped = false;
         this.stockfish = null;
         this.evaluation = 0;
+        this.currentDepth = 0;
+        this.currentNodes = 0;
+        this.currentBestMove = '';
         
         // Piece sets from Wikimedia Commons
         this.pieceSets = {
@@ -85,10 +93,8 @@ class ChessGame {
     async initStockfish() {
         try {
             // Use latest Stockfish WASM version for better performance
-            // Stockfish 10 with WebAssembly support compiled from official Stockfish
             const stockfishUrl = 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.wasm.js';
             
-            // Fallback to regular stockfish.js if WASM version not available
             let scriptContent;
             try {
                 const response = await fetch(stockfishUrl);
@@ -102,7 +108,6 @@ class ChessGame {
             }
             
             // Create a Blob URL for the worker to avoid COOP/COEP issues
-            // This bypasses Cross-Origin Opener Policy restrictions without needing special headers
             const blob = new Blob([scriptContent], { type: 'application/javascript' });
             const workerUrl = URL.createObjectURL(blob);
             
@@ -110,6 +115,28 @@ class ChessGame {
             
             this.stockfish.onmessage = (event) => {
                 const message = event.data;
+                
+                // Parse depth and nodes
+                if (message.startsWith('info') && message.includes('depth')) {
+                    const depthMatch = message.match(/depth (\d+)/);
+                    const nodesMatch = message.match(/nodes (\d+)/);
+                    const pvMatch = message.match(/pv\s+(\S+)/);
+                    
+                    if (depthMatch) {
+                        this.currentDepth = parseInt(depthMatch[1]);
+                        this.engineDepth.textContent = this.currentDepth;
+                    }
+                    
+                    if (nodesMatch) {
+                        this.currentNodes = parseInt(nodesMatch[1]);
+                        this.engineNodes.textContent = this.formatNumber(this.currentNodes);
+                    }
+                    
+                    if (pvMatch) {
+                        this.currentBestMove = pvMatch[1];
+                        this.bestMoveElement.textContent = this.currentBestMove;
+                    }
+                }
                 
                 // Parse evaluation from "info depth X score cp Y" or "score mate Z"
                 if (message.startsWith('info') && message.includes('score')) {
@@ -147,6 +174,15 @@ class ChessGame {
         }
     }
     
+    formatNumber(num) {
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + 'M';
+        } else if (num >= 1000) {
+            return (num / 1000).toFixed(1) + 'K';
+        }
+        return num.toString();
+    }
+    
     analyzePosition() {
         if (!this.stockfish || this.game.game_over()) return;
         
@@ -166,7 +202,6 @@ class ChessGame {
         const clampedEval = Math.max(-10, Math.min(10, evalInPawns));
         
         // Convert to percentage (0-100%)
-        // Positive = white advantage (more green), Negative = black advantage (less green)
         const percentage = ((clampedEval + 10) / 20) * 100;
         
         this.evalBarFill.style.height = `${percentage}%`;
@@ -175,13 +210,13 @@ class ChessGame {
         const sign = evalInPawns >= 0 ? '+' : '';
         this.evalText.textContent = sign + evalInPawns.toFixed(1);
         
-        // Color coding
+        // Color coding based on advantage
         if (evalInPawns > 2) {
             this.evalBarFill.style.background = 'linear-gradient(to top, #2E7D32, #66BB6A)';
         } else if (evalInPawns < -2) {
             this.evalBarFill.style.background = 'linear-gradient(to top, #424242, #757575)';
         } else {
-            this.evalBarFill.style.background = 'linear-gradient(to top, #4CAF50, #8BC34A)';
+            this.evalBarFill.style.background = 'linear-gradient(to top, #8bc34a, #4caf50)';
         }
     }
     
@@ -201,18 +236,50 @@ class ChessGame {
             this.updateStatus();
             this.updateMoveList();
             this.updateCapturedPieces();
+            this.updatePGN();
             setTimeout(() => this.analyzePosition(), 500);
         });
         
         document.getElementById('new-game').addEventListener('click', () => {
             this.game.reset();
             this.evaluation = 0;
+            this.currentDepth = 0;
+            this.currentNodes = 0;
+            this.currentBestMove = '';
             this.updateEvalBar();
+            this.engineDepth.textContent = '-';
+            this.engineNodes.textContent = '-';
+            this.bestMoveElement.textContent = '-';
+            this.gameResultElement.classList.remove('show');
             this.renderBoard();
             this.updateStatus();
             this.updateMoveList();
             this.updateCapturedPieces();
+            this.updatePGN();
             setTimeout(() => this.analyzePosition(), 500);
+        });
+        
+        document.getElementById('copy-fen').addEventListener('click', () => {
+            navigator.clipboard.writeText(this.game.fen()).then(() => {
+                alert('FEN copied to clipboard!');
+            });
+        });
+        
+        document.getElementById('copy-pgn').addEventListener('click', () => {
+            navigator.clipboard.writeText(this.game.pgn()).then(() => {
+                alert('PGN copied to clipboard!');
+            });
+        });
+        
+        document.getElementById('download-pgn').addEventListener('click', () => {
+            const pgn = this.game.pgn();
+            const blob = new Blob([pgn], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'chess-game.pgn';
+            a.click();
+            URL.revokeObjectURL(url);
         });
     }
     
@@ -340,14 +407,20 @@ class ChessGame {
         let status = '';
         
         if (this.game.in_checkmate()) {
-            status = `Checkmate! ${this.game.turn() === 'w' ? 'Black' : 'White'} wins!`;
+            const winner = this.game.turn() === 'w' ? 'Black' : 'White';
+            status = `Checkmate! ${winner} wins!`;
+            this.gameResultElement.textContent = `${winner} wins by checkmate!`;
+            this.gameResultElement.classList.add('show');
         } else if (this.game.in_draw()) {
             status = 'Draw!';
+            this.gameResultElement.textContent = 'Game drawn!';
+            this.gameResultElement.classList.add('show');
         } else {
             status = `${this.game.turn() === 'w' ? 'White' : 'Black'} to move`;
             if (this.game.in_check()) {
                 status += ' (Check!)';
             }
+            this.gameResultElement.classList.remove('show');
         }
         
         this.statusText.textContent = status;
@@ -380,11 +453,15 @@ class ChessGame {
         }
         
         this.moveListElement.scrollTop = this.moveListElement.scrollHeight;
+        this.updatePGN();
+    }
+    
+    updatePGN() {
+        const pgn = this.game.pgn();
+        this.pgnTextElement.textContent = pgn || '[Start position]';
     }
     
     updateCapturedPieces() {
-        const capturedWhite = [];
-        const capturedBlack = [];
         const pieceSet = this.getPieceSet();
         
         // Count material difference from initial position
@@ -408,33 +485,38 @@ class ChessGame {
             }
         }
         
-        // Calculate captured pieces
+        // Calculate captured pieces - white captures black pieces, black captures white pieces
+        const capturedByWhite = []; // White captured black pieces
+        const capturedByBlack = []; // Black captured white pieces
+        
         ['p', 'n', 'b', 'r', 'q'].forEach(type => {
-            const whiteCaptured = initialMaterial[type] - currentMaterial['w'][type];
-            const blackCaptured = initialMaterial[type] - currentMaterial['b'][type];
+            const blackCaptured = initialMaterial[type] - currentMaterial['b'][type]; // Captured by white
+            const whiteCaptured = initialMaterial[type] - currentMaterial['w'][type]; // Captured by black
             
-            for (let i = 0; i < whiteCaptured; i++) {
-                capturedWhite.push(type.toUpperCase());
-            }
             for (let i = 0; i < blackCaptured; i++) {
-                capturedBlack.push(type);
+                capturedByWhite.push(type); // Black pieces captured by white
+            }
+            for (let i = 0; i < whiteCaptured; i++) {
+                capturedByBlack.push(type.toUpperCase()); // White pieces captured by black
             }
         });
         
-        this.capturedWhiteElement.innerHTML = '';
-        capturedWhite.forEach(piece => {
+        // Update captured by white (black pieces)
+        this.capturedByWhiteElement.innerHTML = '';
+        capturedByWhite.forEach(piece => {
             const pieceDiv = document.createElement('div');
             pieceDiv.className = 'captured-piece';
             pieceDiv.style.backgroundImage = `url(${pieceSet[piece]})`;
-            this.capturedWhiteElement.appendChild(pieceDiv);
+            this.capturedByWhiteElement.appendChild(pieceDiv);
         });
         
-        this.capturedBlackElement.innerHTML = '';
-        capturedBlack.forEach(piece => {
+        // Update captured by black (white pieces)
+        this.capturedByBlackElement.innerHTML = '';
+        capturedByBlack.forEach(piece => {
             const pieceDiv = document.createElement('div');
             pieceDiv.className = 'captured-piece';
             pieceDiv.style.backgroundImage = `url(${pieceSet[piece]})`;
-            this.capturedBlackElement.appendChild(pieceDiv);
+            this.capturedByBlackElement.appendChild(pieceDiv);
         });
     }
 }
