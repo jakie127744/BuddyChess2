@@ -260,6 +260,15 @@ h1 {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.captured-piece img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .board-wrapper {
@@ -345,6 +354,13 @@ h1 {
     cursor: grab;
     z-index: 10;
     transition: transform 0.1s ease;
+    background-color: transparent;
+}
+
+.piece img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .piece:active {

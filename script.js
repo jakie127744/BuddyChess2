@@ -314,7 +314,14 @@ class ChessGame {
                     const pieceDiv = document.createElement('div');
                     pieceDiv.className = 'piece';
                     const pieceKey = piece.color === 'w' ? piece.type.toUpperCase() : piece.type;
-                    pieceDiv.style.backgroundImage = `url(${pieceSet[pieceKey]})`;
+                    
+                    // Use img element for better SVG rendering
+                    const img = document.createElement('img');
+                    img.src = pieceSet[pieceKey];
+                    img.alt = pieceKey;
+                    img.draggable = false;
+                    pieceDiv.appendChild(img);
+                    
                     square.appendChild(pieceDiv);
                 }
                 
@@ -513,7 +520,12 @@ class ChessGame {
         capturedByWhite.forEach(piece => {
             const pieceDiv = document.createElement('div');
             pieceDiv.className = 'captured-piece';
-            pieceDiv.style.backgroundImage = `url(${pieceSet[piece]})`;
+            
+            const img = document.createElement('img');
+            img.src = pieceSet[piece];
+            img.alt = piece;
+            pieceDiv.appendChild(img);
+            
             this.capturedByWhiteElement.appendChild(pieceDiv);
         });
         
@@ -522,7 +534,12 @@ class ChessGame {
         capturedByBlack.forEach(piece => {
             const pieceDiv = document.createElement('div');
             pieceDiv.className = 'captured-piece';
-            pieceDiv.style.backgroundImage = `url(${pieceSet[piece]})`;
+            
+            const img = document.createElement('img');
+            img.src = pieceSet[piece];
+            img.alt = piece;
+            pieceDiv.appendChild(img);
+            
             this.capturedByBlackElement.appendChild(pieceDiv);
         });
     }
