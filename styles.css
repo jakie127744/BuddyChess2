@@ -16,72 +16,106 @@ body {
 
 .container {
     background: white;
-    border-radius: 20px;
-    padding: 30px;
+    border-radius: 15px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 900px;
+    padding: 30px;
+    max-width: 1200px;
     width: 100%;
 }
 
 header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
-header h1 {
+h1 {
     color: #333;
-    font-size: 2.5rem;
-    margin-bottom: 5px;
+    margin-bottom: 15px;
+    font-size: 2.5em;
 }
 
-.subtitle {
-    color: #666;
-    font-size: 1.1rem;
-}
-
-.game-container {
+.controls {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.player-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 10px 20px;
-    background: #f5f5f5;
-    border-radius: 10px;
-    width: 100%;
-    max-width: 480px;
-}
-
-.player-name {
-    font-weight: bold;
-    color: #333;
-    min-width: 60px;
-}
-
-.captured-pieces {
-    display: flex;
-    gap: 2px;
+    gap: 10px;
+    justify-content: center;
     flex-wrap: wrap;
 }
 
-.captured-pieces span {
-    font-size: 1.2rem;
+.controls select,
+.controls button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    background: #667eea;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.controls select:hover,
+.controls button:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+}
+
+.game-area {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.evaluation-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.eval-bar-container {
+    width: 30px;
+    height: 400px;
+    background: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid #333;
+}
+
+.eval-bar-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, #4CAF50, #8BC34A);
+    transition: height 0.5s ease;
+}
+
+.eval-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    background: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 5px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.board-container {
+    flex-shrink: 0;
 }
 
 .chessboard {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    width: 480px;
-    height: 480px;
-    border: 4px solid #333;
-    border-radius: 4px;
-    overflow: hidden;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    border: 5px solid #333;
+    border-radius: 5px;
+    user-select: none;
 }
 
 .square {
@@ -90,8 +124,8 @@ header h1 {
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
     cursor: pointer;
-    transition: background-color 0.2s;
 }
 
 .square.light {
@@ -102,199 +136,140 @@ header h1 {
     background-color: #b58863;
 }
 
-.square:hover {
-    opacity: 0.8;
-}
-
-.square.selected {
-    background-color: #7b61ff !important;
-}
-
-.square.valid-move {
+.square.highlighted {
     position: relative;
 }
 
-.square.valid-move::after {
+.square.highlighted::after {
     content: '';
     position: absolute;
     width: 20px;
     height: 20px;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(100, 200, 100, 0.7);
     border-radius: 50%;
 }
 
-.square.valid-capture {
-    background-color: #ff6b6b !important;
-}
-
 .square.last-move {
-    background-color: #aaa23a !important;
+    background-color: rgba(255, 255, 0, 0.4) !important;
 }
 
 .square.check {
-    background-color: #ff4444 !important;
+    background-color: rgba(255, 0, 0, 0.6) !important;
 }
 
 .piece {
-    width: 50px;
-    height: 50px;
+    width: 55px;
+    height: 55px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     cursor: grab;
-    transition: transform 0.1s;
+    z-index: 10;
+    transition: transform 0.1s ease;
 }
 
 .piece:active {
     cursor: grabbing;
+    transform: scale(1.1);
 }
 
-.game-status {
-    text-align: center;
-    padding: 15px;
-    background: #f5f5f5;
-    border-radius: 10px;
-    margin-bottom: 20px;
+.info-panel {
+    flex: 1;
+    min-width: 250px;
+    max-width: 300px;
 }
 
-#status {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #333;
-}
-
-.controls {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.btn {
-    padding: 12px 24px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    font-weight: bold;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-.piece-selector {
-    padding: 12px 24px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    font-weight: bold;
-    outline: none;
-}
-
-.piece-selector option {
-    background: white;
-    color: #333;
-}
-
-.piece-selector:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.piece-image {
-    width: 50px;
-    height: 50px;
-    cursor: grab;
-    transition: transform 0.1s;
-    user-select: none;
-}
-
-.piece-image:active {
-    cursor: grabbing;
-}
-
+.status,
+.captured-pieces,
 .move-history {
-    background: #f5f5f5;
-    padding: 20px;
-    border-radius: 10px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #e9ecef;
+}
+
+h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 5px;
+}
+
+#status-text {
+    color: #555;
+    font-weight: 500;
+}
+
+.captured-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 30px;
+    margin-bottom: 10px;
+}
+
+.captured-piece {
+    width: 25px;
+    height: 25px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.move-list {
     max-height: 200px;
     overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
 }
 
-.move-history h3 {
-    margin-bottom: 10px;
-    color: #333;
+.move-row {
+    display: flex;
+    padding: 3px 0;
+    border-bottom: 1px solid #eee;
 }
 
-.moves-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 5px;
+.move-number {
+    width: 30px;
+    color: #666;
+    font-weight: bold;
 }
 
-.move-item {
-    padding: 5px 10px;
-    background: white;
-    border-radius: 5px;
-    font-size: 0.9rem;
-    color: #333;
+.move-white,
+.move-black {
+    width: 70px;
+    padding-left: 5px;
 }
 
-/* Responsive design */
-@media (max-width: 550px) {
-    .container {
-        padding: 15px;
-    }
-
-    header h1 {
-        font-size: 1.8rem;
-    }
-
+@media (max-width: 768px) {
     .chessboard {
-        width: 320px;
-        height: 320px;
+        grid-template-columns: repeat(8, 45px);
+        grid-template-rows: repeat(8, 45px);
     }
-
+    
     .square {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .piece {
         width: 40px;
         height: 40px;
     }
-
-    .piece {
-        width: 35px;
-        height: 35px;
+    
+    .eval-bar-container {
+        height: 300px;
+        width: 25px;
     }
-
-    .player-info {
-        padding: 8px 15px;
+    
+    .game-area {
+        flex-direction: column;
+        align-items: center;
     }
-
-    .controls {
-        gap: 10px;
+    
+    .info-panel {
+        max-width: 100%;
     }
-
-    .btn {
-        padding: 10px 16px;
-        font-size: 0.9rem;
-    }
-}
-
-/* Flip board */
-.board-flipped {
-    transform: rotate(180deg);
-}
-
-.board-flipped .piece {
-    transform: rotate(180deg);
 }

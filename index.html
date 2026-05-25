@@ -3,50 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BuddyChess2 - Play Chess Online</title>
+    <title>BuddyChess2 - Play Chess with AI Analysis</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>♔ BuddyChess2 ♚</h1>
-            <p class="subtitle">Play Chess Online</p>
+            <h1>BuddyChess2</h1>
+            <div class="controls">
+                <select id="piece-set-selector">
+                    <option value="burnett">Chess Burnett</option>
+                    <option value="merida">Merida</option>
+                    <option value="alpha">Alpha</option>
+                    <option value="neo">Neo</option>
+                </select>
+                <button id="flip-board">Flip Board</button>
+                <button id="undo-move">Undo</button>
+                <button id="new-game">New Game</button>
+            </div>
         </header>
 
-        <div class="game-container">
-            <div class="player-info top-player">
-                <span class="player-name">Black</span>
-                <span id="black-captured" class="captured-pieces"></span>
+        <div class="game-area">
+            <div class="evaluation-panel">
+                <div class="eval-bar-container">
+                    <div id="eval-bar-fill" class="eval-bar-fill"></div>
+                </div>
+                <div id="eval-text" class="eval-text">0.0</div>
             </div>
 
-            <div id="chessboard" class="chessboard"></div>
-
-            <div class="player-info bottom-player">
-                <span class="player-name">White</span>
-                <span id="white-captured" class="captured-pieces"></span>
+            <div class="board-container">
+                <div id="chessboard" class="chessboard"></div>
             </div>
-        </div>
 
-        <div class="game-status">
-            <span id="status">White's turn</span>
-        </div>
+            <div class="info-panel">
+                <div class="status">
+                    <h3>Game Status</h3>
+                    <p id="status-text">White to move</p>
+                </div>
+                
+                <div class="captured-pieces">
+                    <h3>Captured Pieces</h3>
+                    <div id="captured-white" class="captured-row"></div>
+                    <div id="captured-black" class="captured-row"></div>
+                </div>
 
-        <div class="controls">
-            <button id="new-game" class="btn">New Game</button>
-            <button id="flip-board" class="btn">Flip Board</button>
-            <button id="undo-move" class="btn">Undo Move</button>
-            <select id="piece-set-selector" class="piece-selector">
-                <!-- Options will be populated by JavaScript -->
-            </select>
-        </div>
-
-        <div class="move-history">
-            <h3>Move History</h3>
-            <div id="moves" class="moves-list"></div>
+                <div class="move-history">
+                    <h3>Move History</h3>
+                    <div id="move-list" class="move-list"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
