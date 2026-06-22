@@ -3,19 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>BuddyChess2 - Advanced Analysis</title>
+<title>BuddyChess2 - Advanced Review</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <style>
-  /* --- Core Layout & Scrollbars --- */
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121315; color: #e4e4e7; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #18181b; }
   ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-  /* --- Chess Board --- */
+  /* ===== Board ===== */
   #board {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
@@ -31,16 +30,12 @@
   .square { position: relative; display: flex; align-items: center; justify-content: center; }
   .square.light { background: #ebecd0; }
   .square.dark { background: #6f9152; }
-  
-  /* Highlights */
   .square.sq-highlight-from { background-color: rgba(255, 221, 0, 0.45) !important; }
   .square.sq-highlight-to { background-color: rgba(255, 221, 0, 0.55) !important; }
   .square.sq-selected::before {
     content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 3px rgba(56,189,248,0.85); pointer-events: none;
   }
   .square.sq-check { background: radial-gradient(circle, rgba(255,40,40,0.95) 0%, rgba(255,40,40,0.55) 45%, rgba(255,40,40,0) 75%) !important; }
-  
-  /* Move Hints */
   .square.move-dot::after {
     content: ''; position: absolute; width: 30%; height: 30%; border-radius: 50%;
     background: rgba(20,20,20,0.28); pointer-events: none;
@@ -49,282 +44,268 @@
     content: ''; position: absolute; width: 86%; height: 86%; border-radius: 50%;
     border: 4px solid rgba(20,20,20,0.32); box-sizing: border-box; pointer-events: none;
   }
-
-  /* Coordinates */
   .coord-file { position: absolute; bottom: 1px; left: 3px; font-size: 9px; font-weight: 800; pointer-events:none; }
   .coord-rank { position: absolute; top: 1px; right: 3px; font-size: 9px; font-weight: 800; pointer-events:none; }
   .coord-dark { color: rgba(45,60,30,0.85); }
   .coord-light { color: rgba(230,236,210,0.9); }
 
-  /* Pieces */
   .piece-wrap {
     width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
     cursor: default; transition: transform .08s ease;
-    z-index: 10;
   }
   .piece-wrap.cursor-pointer { cursor: grab; }
   .piece-wrap.cursor-pointer:hover { transform: scale(1.08); }
   .piece-img {
     width: 85%; height: 85%; pointer-events: none; user-select: none;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,.3));
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,.45));
   }
 
-  /* Badges */
   .move-badge {
-    position: absolute; top: -6px; right: -6px;
-    width: 24px; height: 24px;
+    position: absolute; top: -10px; right: -10px;
+    width: clamp(26px, calc(var(--sq-size, 60px) * 0.46), 40px);
+    height: clamp(26px, calc(var(--sq-size, 60px) * 0.46), 40px);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 800;
-    box-shadow: 0 2px 6px rgba(0,0,0,.6); border: 2px solid #0f1012; z-index: 20;
+    font-size: clamp(13px, calc(var(--sq-size, 60px) * 0.24), 20px); font-weight: 800;
+    box-shadow: 0 3px 10px rgba(0,0,0,.75); border: 2.5px solid #0f1012; z-index: 25;
   }
 
-  /* --- Eval Bar --- */
+  /* ===== Eval bar ===== */
   .eval-bar-track {
-    width: 24px; border-radius: 4px; overflow: hidden; background: #15161a; position: relative;
+    width: 26px; border-radius: 6px; overflow: hidden; background: #15161a; position: relative;
     display: flex; flex-direction: column-reverse; border: 1px solid #2a2b30; flex-shrink:0;
-    height: 100%;
   }
   .eval-bar-white { width: 100%; background: #f1f1ec; height: 50%; transition: height .6s cubic-bezier(.4,0,.2,1); }
   .eval-label {
     position: absolute; left: 0; right: 0; text-align: center; font-size: 9px; font-weight: 800;
-    color: #0f1012; bottom: 2px; pointer-events:none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: #0f1012; bottom: 3px; pointer-events:none; z-index: 10;
   }
-  .eval-label.label-top { color: #f1f1ec; top: 2px; bottom: auto; }
+  .eval-label.label-top { color: #f1f1ec; top: 3px; bottom: auto; }
 
-  /* --- Components --- */
-  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display:inline-block; }
+  /* ===== misc ===== */
+  .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display:inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  
-  .progress-track { width: 100%; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; }
+  .progress-track { width: 100%; height: 7px; background: #27272a; border-radius: 4px; overflow: hidden; }
   .progress-fill { height: 100%; background: linear-gradient(90deg,#3aab59,#81b64c); transition: width .2s ease; width:0%; }
-  
   .tab-btn { transition: color .15s, border-color .15s; border-bottom: 2px solid transparent; }
   .tab-btn.tab-active { color: #fafafa; border-bottom-color: #81b64c; }
-  
   .input-base {
-    background: #18181b; border: 1px solid #3f3f46; border-radius: 6px; padding: 6px 10px;
+    background: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 8px 10px;
     font-size: 13px; color: #e4e4e7; width: 100%; outline: none;
   }
   .input-base:focus { border-color: #71717a; }
-  
-  .btn-primary { background: #4a7c33; color: #fff; font-weight: 600; border-radius: 6px; padding: 6px 12px; font-size: 13px; transition: background .15s; }
+  .btn-primary { background: #4a7c33; color: #fff; font-weight: 600; border-radius: 8px; padding: 8px 14px; font-size: 13px; transition: background .15s; }
   .btn-primary:hover { background: #57903c; }
   .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-  
-  .btn-secondary { background: #27272a; color: #d4d4d8; font-weight: 600; border-radius: 6px; padding: 6px 10px; font-size: 13px; transition: background .15s; border: 1px solid #3f3f46; }
+  .btn-secondary { background: #27272a; color: #d4d4d8; font-weight: 600; border-radius: 8px; padding: 8px 12px; font-size: 13px; transition: background .15s; border: 1px solid #3f3f46; }
   .btn-secondary:hover { background: #3f3f46; }
-  
+  .btn-secondary:disabled { opacity: .4; cursor: not-allowed; }
   .icon-btn {
-    width: 34px; height: 34px; border-radius: 6px; background: #1f2023; border: 1px solid #313236;
+    width: 38px; height: 38px; border-radius: 8px; background: #1f2023; border: 1px solid #313236;
     display: flex; align-items: center; justify-content: center; color: #d4d4d8; transition: background .15s;
-    font-size: 16px;
   }
   .icon-btn:hover { background: #2c2d31; }
   .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
-
-  .promo-btn { width: 48px; height: 48px; border-radius: 6px; background: #2c2d31; border: 1px solid #46474c; display:flex; align-items:center; justify-content:center; }
+  .promo-btn { width: 52px; height: 52px; border-radius: 8px; background: #2c2d31; border: 1px solid #46474c; display:flex; align-items:center; justify-content:center; }
   .promo-btn:hover { background: #3a3b40; }
-  .promo-btn img { width: 80%; height: 80%; }
+  .promo-btn img { width: 70%; height: 70%; }
 </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-[#121315] text-zinc-200 min-h-screen">
 
-<!-- Header -->
-<header class="border-b border-zinc-800 bg-[#16171a] py-2 px-4 flex items-center justify-between">
-  <div class="flex items-center gap-2">
-    <span class="text-xl">♟️</span>
-    <div>
-      <h1 class="text-sm font-bold text-zinc-50">BuddyChess2</h1>
-      <p class="text-[10px] text-zinc-500">Local Engine Analysis</p>
+<!-- ===================== HEADER ===================== -->
+<header class="border-b border-zinc-800/80 bg-[#16171a]">
+  <div class="max-w-[1500px] mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="text-2xl">♟️</span>
+      <div>
+        <h1 class="text-lg font-bold leading-none text-zinc-50">BuddyChess2</h1>
+        <p class="text-[11px] text-zinc-500 leading-none mt-1">Local engine game analysis</p>
+      </div>
     </div>
-  </div>
-  <div class="flex items-center gap-2 text-xs">
-    <span id="engineStatusDot" class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
-    <span id="engineStatusText" class="text-zinc-400">Loading Stockfish 16...</span>
-    <button id="retryEngineBtn" class="hidden text-zinc-400 hover:text-zinc-100 underline">Retry</button>
+    <div class="flex items-center gap-2 text-xs">
+      <span id="engineStatusDot" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+      <span id="engineStatusText" class="text-zinc-400">Loading engine…</span>
+      <button id="retryEngineBtn" class="hidden text-zinc-400 hover:text-zinc-100 underline ml-1">Retry</button>
+    </div>
   </div>
 </header>
 
-<!-- Main Content -->
-<main class="flex-1 max-w-[1400px] w-full mx-auto p-2 lg:p-4 flex flex-col lg:flex-row gap-4 items-start">
+<!-- ===================== MAIN ===================== -->
+<main class="max-w-[1500px] mx-auto px-3 py-4 flex flex-col lg:flex-row gap-4 items-start">
 
-  <!-- Left Column: Board & Eval -->
-  <div class="w-full lg:flex-1 flex flex-col items-center">
-    
-    <!-- Status Banner -->
-    <div id="playStatusBanner" class="hidden w-full mb-2 text-center text-xs font-medium py-1.5 px-3 rounded bg-zinc-800 border border-zinc-700 text-zinc-200"></div>
+  <!-- BOARD COLUMN -->
+  <div class="w-full lg:flex-1 flex justify-center">
+    <div id="boardWrapper" class="w-full max-w-[620px] relative">
 
-    <div class="flex gap-2 w-full max-w-[600px]">
-      <!-- Eval Bar -->
-      <div id="evalBarTrack" class="eval-bar-track">
-        <div id="evalBarWhite" class="eval-bar-white"></div>
-        <span id="evalLabel" class="eval-label">0.0</span>
+      <div id="playStatusBanner" class="hidden mb-2 text-center text-sm font-medium py-2 px-3 rounded-lg bg-zinc-800/80 border border-zinc-700 text-zinc-200"></div>
+
+      <div class="flex gap-2.5">
+        <div id="evalBarTrack" class="eval-bar-track">
+          <div id="evalBarWhite" class="eval-bar-white"></div>
+          <span id="evalLabel" class="eval-label">0.0</span>
+        </div>
+        <div id="board" class="flex-1"></div>
       </div>
-      
-      <!-- Board -->
-      <div id="board" class="flex-1 bg-zinc-800"></div>
-    </div>
 
-    <!-- Promotion Picker -->
-    <div id="promotionPicker" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div id="promotionButtons" class="bg-zinc-800 rounded-lg p-2 flex gap-2 border border-zinc-600 shadow-xl"></div>
-    </div>
+      <!-- promotion picker overlay -->
+      <div id="promotionPicker" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-black/70 rounded-lg">
+        <div id="promotionButtons" class="bg-zinc-800 rounded-xl p-3 flex gap-2 border border-zinc-600 shadow-2xl"></div>
+      </div>
 
-    <!-- Controls -->
-    <div id="reviewControls" class="flex items-center justify-center gap-2 mt-4 flex-wrap">
-      <button id="btnFirst" class="icon-btn" title="Start">⏮</button>
-      <button id="btnPrev" class="icon-btn" title="Previous">◀</button>
-      <button id="btnNext" class="icon-btn" title="Next">▶</button>
-      <button id="btnLast" class="icon-btn" title="End">⏭</button>
-      <button id="btnFlip" class="icon-btn" title="Flip">⇅</button>
-      <button id="btnPlayEngine" class="btn-primary ml-2 px-4">▶ Play vs Engine</button>
-    </div>
+      <!-- review nav controls -->
+      <div id="reviewControls" class="flex items-center justify-center gap-2 mt-3 flex-wrap">
+        <button id="btnFirst" class="icon-btn" title="First move">⏮</button>
+        <button id="btnPrev" class="icon-btn" title="Previous (←)">◀</button>
+        <button id="btnNext" class="icon-btn" title="Next (→)">▶</button>
+        <button id="btnLast" class="icon-btn" title="Last move">⏭</button>
+        <button id="btnFlip" class="icon-btn" title="Flip board">⇅</button>
+        <button id="btnPlayEngine" class="btn-primary ml-2">▶ Play vs Engine</button>
+      </div>
 
-    <div id="playControls" class="hidden items-center justify-center gap-2 mt-4">
-      <button id="btnFlip2" class="icon-btn">⇅</button>
-      <button id="btnSavePgnPlay" class="icon-btn" title="Save PGN">⬇</button>
-      <button id="btnResetReview" class="btn-secondary">↩ Exit Play</button>
-    </div>
+      <!-- play mode controls -->
+      <div id="playControls" class="hidden items-center justify-center gap-2 mt-3">
+        <button id="btnFlip2" class="icon-btn" title="Flip board">⇅</button>
+        <button id="btnSavePgnPlay" class="icon-btn" title="Save this game as PGN">⬇</button>
+        <button id="btnResetReview" class="btn-secondary">↩ Reset to Review</button>
+      </div>
 
-    <!-- Eval Graph -->
-    <div class="w-full max-w-[600px] mt-4">
-      <canvas id="evalGraph" class="w-full h-16 rounded bg-[#1a1b1e] border border-zinc-800"></canvas>
+      <!-- eval graph -->
+      <div class="mt-3">
+        <canvas id="evalGraph" class="w-full h-16 rounded-lg bg-[#1a1b1e] border border-zinc-800 cursor-pointer"></canvas>
+      </div>
     </div>
   </div>
 
-  <!-- Right Column: Sidebar -->
-  <div class="w-full lg:w-[380px] flex-shrink-0 bg-[#17181b] border border-zinc-800 rounded-lg flex flex-col h-[600px] lg:h-[calc(100vh-120px)] overflow-hidden">
-    
-    <!-- Tabs -->
-    <div class="flex border-b border-zinc-800 px-2 text-xs">
-      <button id="tabBtn-import" class="tab-btn px-3 py-2.5 font-medium text-zinc-400">Import</button>
-      <button id="tabBtn-review" class="tab-btn px-3 py-2.5 font-medium text-zinc-400">Review</button>
-      <button id="tabBtn-moves" class="tab-btn px-3 py-2.5 font-medium text-zinc-400">Moves</button>
+  <!-- SIDEBAR -->
+  <div class="w-full lg:w-[400px] flex-shrink-0 bg-[#17181b] border border-zinc-800 rounded-xl flex flex-col max-h-none lg:max-h-[calc(100vh-100px)] overflow-hidden">
+
+    <!-- tabs -->
+    <div class="flex border-b border-zinc-800 px-2 text-sm flex-shrink-0">
+      <button id="tabBtn-import" class="tab-btn px-3 py-3 font-medium text-zinc-400">Import</button>
+      <button id="tabBtn-review" class="tab-btn px-3 py-3 font-medium text-zinc-400">Review</button>
+      <button id="tabBtn-moves" class="tab-btn px-3 py-3 font-medium text-zinc-400">Moves</button>
     </div>
 
-    <div class="overflow-y-auto flex-1 p-3 space-y-4">
-      
-      <!-- Import Tab -->
-      <div id="tab-import" class="tab-panel space-y-4">
+    <div class="overflow-y-auto flex-1 p-4">
+
+      <!-- ===== IMPORT TAB ===== -->
+      <div id="tab-import" class="tab-panel space-y-5">
         <div>
-          <label class="text-[10px] font-bold text-zinc-500 uppercase">Chess.com Username</label>
-          <div class="flex gap-1 mt-1">
+          <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Chess.com username</label>
+          <div class="flex gap-2 mt-1.5">
             <input id="chesscomUsername" type="text" placeholder="e.g. hikaru" class="input-base">
-            <button id="fetchChesscomBtn" class="btn-primary whitespace-nowrap">Fetch</button>
+            <button id="fetchChesscomBtn" class="btn-primary whitespace-nowrap flex items-center gap-1.5">Fetch</button>
           </div>
         </div>
         <div>
-          <label class="text-[10px] font-bold text-zinc-500 uppercase">Lichess Username</label>
-          <div class="flex gap-1 mt-1">
+          <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Lichess username</label>
+          <div class="flex gap-2 mt-1.5">
             <input id="lichessUsername" type="text" placeholder="e.g. DrNykterstein" class="input-base">
-            <button id="fetchLichessBtn" class="btn-primary whitespace-nowrap">Fetch</button>
+            <button id="fetchLichessBtn" class="btn-primary whitespace-nowrap flex items-center gap-1.5">Fetch</button>
           </div>
+          <p class="text-[11px] text-zinc-500 mt-1.5">Fetches a list of recent games to pick from.</p>
         </div>
 
-        <div id="gameListWrap" class="hidden border-t border-zinc-800 pt-3 space-y-2">
-          <div class="flex justify-between text-[10px] text-zinc-500 font-bold uppercase">
-            <span>Recent Games</span>
-            <span id="gameListMeta"></span>
+        <!-- recent-games picker, populated after a Fetch -->
+        <div id="gameListWrap" class="hidden border-t border-zinc-800 pt-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Recent games</h3>
+            <span id="gameListMeta" class="text-[11px] text-zinc-500"></span>
           </div>
-          <div id="gameListItems" class="space-y-1 max-h-48 overflow-y-auto"></div>
+          <div id="gameListItems" class="space-y-1.5 max-h-72 overflow-y-auto pr-1"></div>
         </div>
 
-        <div class="border-t border-zinc-800 pt-3">
-          <label class="text-[10px] font-bold text-zinc-500 uppercase">Paste PGN</label>
-          <textarea id="pgnInput" rows="5" placeholder="[Event ...]" class="input-base mt-1 font-mono text-xs resize-none"></textarea>
+        <div class="border-t border-zinc-800 pt-4">
+          <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Paste PGN</label>
+          <textarea id="pgnInput" rows="7" placeholder="[Event &quot;Casual game&quot;]&#10;1. e4 e5 2. Nf3 Nc6 ..." class="input-base mt-1.5 font-mono text-xs resize-none"></textarea>
           <button id="loadPgnBtn" class="btn-primary mt-2 w-full">Load PGN</button>
         </div>
-        <div id="importStatus" class="text-xs min-h-[16px]"></div>
+        <div id="importStatus" class="text-xs min-h-[18px]"></div>
       </div>
 
-      <!-- Review Tab -->
-      <div id="tab-review" class="tab-panel hidden space-y-4">
-        <div class="flex justify-between items-start">
-          <div id="gameHeader" class="text-xs flex-1"></div>
-          <button id="btnSavePgn" class="icon-btn flex-shrink-0" disabled>⬇</button>
+
+      <!-- ===== REVIEW TAB ===== -->
+      <div id="tab-review" class="tab-panel hidden space-y-5">
+        <div class="flex items-start justify-between gap-2">
+          <div id="gameHeader" class="text-sm flex-1 min-w-0"></div>
+          <button id="btnSavePgn" class="icon-btn flex-shrink-0" title="Save this game as PGN" disabled>⬇</button>
         </div>
 
-        <div id="analysisProgressWrap" class="hidden space-y-1">
-          <div class="flex justify-between text-[10px] text-zinc-400">
-            <span id="analysisProgressText">Analyzing...</span>
+        <div id="analysisProgressWrap" class="hidden space-y-1.5">
+          <div class="flex justify-between text-xs text-zinc-400">
+            <span id="analysisProgressText">Analyzing…</span>
             <button id="cancelAnalysisBtn" class="text-zinc-500 hover:text-red-400">Cancel</button>
           </div>
           <div class="progress-track"><div id="analysisProgressBar" class="progress-fill"></div></div>
         </div>
 
-        <div id="reviewEmptyState" class="text-xs text-zinc-500 text-center py-8">Import a game to start review.</div>
+        <div id="reviewEmptyState" class="text-sm text-zinc-500 text-center py-10">Import a game to start the review.</div>
 
-        <div id="reviewContent" class="hidden space-y-4">
-          <div class="space-y-2">
-            <div class="flex justify-between text-xs"><span class="font-semibold text-zinc-300">White Accuracy</span><span id="accuracyWhiteVal" class="font-bold">—</span></div>
-            <div class="progress-track"><div id="accuracyWhiteBar" class="h-full bg-zinc-100 rounded-full" style="width:0%"></div></div>
-            
-            <div class="flex justify-between text-xs mt-2"><span class="font-semibold text-zinc-300">Black Accuracy</span><span id="accuracyBlackVal" class="font-bold">—</span></div>
-            <div class="progress-track"><div id="accuracyBlackBar" class="h-full bg-zinc-500 rounded-full" style="width:0%"></div></div>
+        <div id="reviewContent" class="hidden space-y-5">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-sm font-semibold text-zinc-300">⚪ White accuracy</span>
+              <span id="accuracyWhiteVal" class="text-xl font-bold text-zinc-100">—</span>
+            </div>
+            <div class="progress-track"><div id="accuracyWhiteBar" class="h-full bg-zinc-100 rounded-full transition-all duration-700" style="width:0%"></div></div>
+            <div class="flex items-center justify-between mb-1 mt-3">
+              <span class="text-sm font-semibold text-zinc-300">⚫ Black accuracy</span>
+              <span id="accuracyBlackVal" class="text-xl font-bold text-zinc-100">—</span>
+            </div>
+            <div class="progress-track"><div id="accuracyBlackBar" class="h-full bg-zinc-500 rounded-full transition-all duration-700" style="width:0%"></div></div>
           </div>
 
           <div>
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-[10px] font-bold text-zinc-500 uppercase">Move Breakdown</span>
-              <div class="flex gap-2">
-                <select id="depthSelect" class="bg-zinc-800 border border-zinc-700 rounded text-[10px] px-1 py-0.5">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Move breakdown</h3>
+              <div class="flex items-center gap-2">
+                <select id="depthSelect" class="bg-zinc-800 border border-zinc-700 rounded text-[11px] px-1.5 py-1 text-zinc-300">
+                  <option value="10">Depth 10</option>
                   <option value="12">Depth 12</option>
                   <option value="15" selected>Depth 15</option>
-                  <option value="18">Depth 18</option>
                 </select>
-                <button id="reanalyzeBtn" class="text-[10px] text-zinc-500 hover:text-zinc-200 underline">Re-run</button>
+                <button id="reanalyzeBtn" class="text-[11px] text-zinc-500 hover:text-zinc-200 underline">Re-run</button>
               </div>
             </div>
-            <div id="classBreakdown" class="space-y-1"></div>
+            <div class="flex justify-between text-xs text-zinc-500 px-1 mb-1"><span></span><span class="flex gap-4"><span class="w-6 text-right">W</span><span class="w-6 text-right">B</span></span></div>
+            <div id="classBreakdown"></div>
           </div>
         </div>
       </div>
 
-      <!-- Moves Tab -->
+      <!-- ===== MOVES TAB ===== -->
       <div id="tab-moves" class="tab-panel hidden">
-        <div id="moveList" class="space-y-0.5 text-sm"></div>
+        <div id="moveList" class="space-y-0.5"></div>
       </div>
 
     </div>
   </div>
 </main>
 
-<footer class="py-2 text-center text-[10px] text-zinc-600">
-  Stockfish 16 NNUE running locally. Keyboard: ← → to navigate.
+<footer class="max-w-[1500px] mx-auto px-4 pb-6 pt-2 text-center text-[11px] text-zinc-600">
+  Engine analysis runs locally in your browser via Stockfish (WebWorker). Keyboard: ← → to step through moves.
 </footer>
 
 <script>
 (function () {
 'use strict';
 
-/* ================= CONSTANTS & ASSETS ================= */
+/* ============================================================
+   CONSTANTS
+============================================================ */
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-// Reliable Wikimedia Commons SVGs (High Quality, Stable URLs)
+// Reliable Wikimedia Commons SVGs
 const PIECE_URLS = {
-  w: {
-    p: 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg',
-    n: 'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg',
-    b: 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg',
-    r: 'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg',
-    q: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg',
-    k: 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg'
-  },
-  b: {
-    p: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg',
-    n: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg',
-    b: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg',
-    r: 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg',
-    q: 'https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg',
-    k: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg'
-  }
+  w: { k: 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg', q: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg', r: 'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg', b: 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg', n: 'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg', p: 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg' },
+  b: { k: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg', q: 'https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg', r: 'https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg', b: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg', n: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg', p: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg' }
 };
 
 const CLASS_INFO = {
   brilliant:  { label:'Brilliant',   color:'#1baca6', symbol:'!!', text:'#fff' },
-  great:      { label:'Great',       color:'#5c8bb0', symbol:'!',  text:'#fff' },
-  best:       { label:'Best',        color:'#3aab59', symbol:'✓',  text:'#fff' },
+  great:      { label:'Great Move',  color:'#5c8bb0', symbol:'!',  text:'#fff' },
+  best:       { label:'Best Move',   color:'#3aab59', symbol:'✓',  text:'#fff' },
   excellent:  { label:'Excellent',   color:'#81b64c', symbol:'✓',  text:'#fff' },
   good:       { label:'Good',        color:'#8bab5c', symbol:'✓',  text:'#fff' },
   book:       { label:'Book',        color:'#a88865', symbol:'B',  text:'#fff' },
@@ -332,16 +313,50 @@ const CLASS_INFO = {
   mistake:    { label:'Mistake',     color:'#ffa15c', symbol:'?',  text:'#1a1a1a' },
   blunder:    { label:'Blunder',     color:'#fa4f4f', symbol:'??', text:'#fff' }
 };
-const CLASS_KEYS = Object.keys(CLASS_INFO);
+const CLASS_KEYS = ['brilliant','great','best','excellent','good','book','inaccuracy','mistake','blunder'];
 const PIECE_VALUES = { p:1, n:3, b:3, r:5, q:9, k:0 };
 
-// Opening Book (Simplified)
+// Embedded opening book
 const OPENING_BOOK = [
-  "e4 e5 Nf3 Nc6 Bb5", "e4 c5 Nf3 d6 d4", "d4 d5 c4", "d4 Nf6 c4 g6",
-  "e4 e6 d4 d5", "e4 c6 d4 d5", "Nf3 d5 d4 Nf6 c4"
+"e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5 Qxd8+ Kxd8",
+"e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O h3 Nb8 d4 Nbd7",
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be2 e5 Nb3 Be7 O-O O-O",
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O Qd2 Nc6",
+"d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 h6 Bh4 b6",
+"d4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O Nc6"
+];
+const OPENING_BOOK_TOKENS = OPENING_BOOK.map(line => line.split(' '));
+
+function isBookMove(sanHistory, ply) {
+  for (let li = 0; li < OPENING_BOOK_TOKENS.length; li++) {
+    const tokens = OPENING_BOOK_TOKENS[li];
+    if (tokens.length < ply) continue;
+    let match = true;
+    for (let i = 0; i < ply; i++) {
+      if (tokens[i] !== sanHistory[i]) { match = false; break; }
+    }
+    if (match) return true;
+  }
+  return false;
+}
+
+// Engine Sources - Prioritizing Stockfish 16 NNUE
+const ENGINE_SOURCES = [
+  {
+    label: 'Stockfish 16 NNUE (jsDelivr)',
+    url: 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js', // Fallback to robust v10 single file if v16 fails CORS
+    wasmBase: null
+  },
+  {
+     label: 'Stockfish 16 WASM (Lichess CDN)',
+     url: 'https://lichess1.org/assets/dist/engine/stockfish-nnue-16.wasm.js',
+     wasmBase: 'https://lichess1.org/assets/dist/engine/'
+  }
 ];
 
-/* ================= STATE ================= */
+/* ============================================================
+   STATE
+============================================================ */
 let positions = [START_FEN];
 let moveHistory = [];
 let headers = {};
@@ -365,14 +380,17 @@ let humanColor = null;
 let playStartFen = null;
 let lastPlayEvalWhiteCp = 0;
 let lastPlayEvalMate = null;
+
 let currentGameListItems = [];
 
-/* ================= DOM REFS ================= */
+/* ============================================================
+   DOM REFS
+============================================================ */
 let el = {};
 function q(id) { return document.getElementById(id); }
 function initElements() {
   el = {
-    board: q('board'),
+    boardWrapper: q('boardWrapper'), board: q('board'),
     evalBarWhite: q('evalBarWhite'), evalLabel: q('evalLabel'),
     evalGraph: q('evalGraph'),
     engineStatusDot: q('engineStatusDot'), engineStatusText: q('engineStatusText'), retryEngineBtn: q('retryEngineBtn'),
@@ -398,7 +416,9 @@ function initElements() {
   };
 }
 
-/* ================= UTILITIES ================= */
+/* ============================================================
+   UTILITIES
+============================================================ */
 function fenToBoard(fen) {
   const rows = fen.split(' ')[0].split('/');
   const board = [];
@@ -412,38 +432,37 @@ function fenToBoard(fen) {
   }
   return board;
 }
-
 function squareAt(row, col, flip) {
   let file, rank;
   if (!flip) { file = col; rank = 7 - row; } else { file = 7 - col; rank = row; }
   return 'abcdefgh'[file] + (rank + 1);
 }
-
 function isLightSquare(square) {
   const file = square.charCodeAt(0) - 96;
   const rank = parseInt(square[1], 10);
   return (file + rank) % 2 === 1;
 }
-
 function pieceAt(board, square) {
   const file = square.charCodeAt(0) - 97;
   const rank = parseInt(square[1], 10);
   const row = 8 - rank;
   return board[row][file];
 }
-
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
-const DEFAULT_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#3f3f46"/><circle cx="20" cy="16" r="7" fill="#a1a1aa"/><path d="M6 36c0-8 6-13 14-13s14 5 14 13" fill="#a1a1aa"/></svg>');
-
+const DEFAULT_AVATAR_DATA_URI = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#3f3f46"/><circle cx="20" cy="16" r="7" fill="#a1a1aa"/><path d="M6 36c0-8 6-13 14-13s14 5 14 13" fill="#a1a1aa"/></svg>'
+);
 function avatarImgHtml(url, alt) {
-  const src = url || DEFAULT_AVATAR;
-  return `<img src="${src}" alt="${escapeHtml(alt||'')}" class="w-8 h-8 rounded-full object-cover border border-zinc-700 bg-zinc-800" onerror="this.src='${DEFAULT_AVATAR}'">`;
+  const src = url || DEFAULT_AVATAR_DATA_URI;
+  return '<img src="' + src + '" alt="' + escapeHtml(alt || '') + '" ' +
+    'class="w-9 h-9 rounded-full object-cover border border-zinc-700 bg-zinc-800 flex-shrink-0" ' +
+    'referrerpolicy="no-referrer" loading="lazy" ' +
+    'onerror="this.onerror=null;this.src=\'' + DEFAULT_AVATAR_DATA_URI + '\';">';
 }
-
 function deriveDateFromHeaders(h) {
   try {
     if (h.UTCDate && h.UTCTime) {
@@ -459,29 +478,35 @@ function deriveDateFromHeaders(h) {
   } catch (e) {}
   return null;
 }
-
 function formatDateTime(d) {
   if (!d) return '';
-  try { return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+  try {
+    return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch (e) { return ''; }
 }
-
 function createPieceElement(color, type) {
   const wrap = document.createElement('div');
   wrap.className = 'piece-wrap';
-  // Use IMG tag for reliable loading from Wikimedia
   const img = document.createElement('img');
   img.src = PIECE_URLS[color][type];
   img.className = 'piece-img';
   img.alt = type;
+  // Fallback if image fails
   img.onerror = function() { 
-    // Fallback: if image fails, try to reload or show empty
-    console.warn(`Failed to load piece: ${color}${type}`); 
+    // Simple fallback text if image fails (rare with Wikimedia)
+    this.style.display = 'none'; 
+    wrap.textContent = type.toUpperCase(); 
+    wrap.style.fontSize = '24px'; 
+    wrap.style.fontWeight = 'bold';
+    wrap.style.color = color === 'w' ? '#fff' : '#000';
   };
   wrap.appendChild(img);
   return wrap;
 }
 
-/* ================= EVAL MATH ================= */
+/* ============================================================
+   EVAL MATH
+============================================================ */
 function mateToCp(m) {
   const sign = m > 0 ? 1 : -1;
   const dist = Math.min(Math.abs(m), 99);
@@ -513,7 +538,9 @@ function computeSideAccuracy(accuracies) {
   return (mean + harmonic) / 2;
 }
 function formatEval(cp, mate) {
-  if (mate != null && mate !== 0) return (mate > 0 ? 'M' : '-M') + Math.abs(mate);
+  if (mate != null && mate !== 0) {
+    return (mate > 0 ? 'M' : '-M') + Math.abs(mate);
+  }
   if (Math.abs(cp) >= 90000) {
     const mtm = Math.max(1, Math.round((100000 - Math.abs(cp)) / 1000));
     return (cp > 0 ? 'M' : '-M') + mtm;
@@ -522,70 +549,70 @@ function formatEval(cp, mate) {
   return (cp >= 0 ? '+' : '') + pawns;
 }
 
-/* ================= ENGINE (STOCKFISH 16) ================= */
-// Using Stockfish 16 NNUE WASM from unpkg (CORS friendly)
-const ENGINE_URL = 'https://unpkg.com/stockfish@16.0.0/src/stockfish-nnue-16-single.js';
-const WASM_BASE = 'https://unpkg.com/stockfish@16.0.0/src/';
-
+/* ============================================================
+   ENGINE (Robust Blob Proxy)
+============================================================ */
 const engine = {
   worker: null, ready: false, failed: false, queue: Promise.resolve(),
-  activeLabel: null,
+  lastErrors: [], activeLabel: null,
 
   async init() {
     this.failed = false;
+    this.lastErrors = [];
     this.activeLabel = null;
-    try {
-      const worker = await this._createWorker();
-      this.worker = worker;
-      this.ready = true;
-      this.activeLabel = 'Stockfish 16 NNUE (WASM)';
-      return true;
-    } catch (e) {
-      console.error('Engine init failed:', e);
-      this.failed = true;
-      return false;
+    
+    // Try sources in order
+    for (const source of ENGINE_SOURCES) {
+      try {
+        const worker = await this._tryCreateWorker(source);
+        this.worker = worker;
+        this.ready = true;
+        this.activeLabel = source.label;
+        return true;
+      } catch (e) {
+        console.warn('Engine source failed:', source.label, e);
+        this.lastErrors.push(source.label + ' — ' + (e.message || e));
+      }
     }
+    this.failed = true;
+    return false;
   },
 
-  _createWorker() {
+  _tryCreateWorker(source) {
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        try { worker.terminate(); } catch(e){}
-        reject(new Error('Timeout loading engine'));
-      }, 15000);
+      let settled = false;
+      const finish = (fn, arg) => { if (settled) return; settled = true; clearTimeout(timeout); fn(arg); };
 
-      // Blob wrapper to handle CORS and Module.locateFile
-      const bootstrap = `
-        var Module = { locateFile: function(path) { return "${WASM_BASE}" + path; } };
-        try {
-          importScripts("${ENGINE_URL}");
-        } catch (e) {
-          postMessage('__BOOT_ERROR__:' + e.message);
-        }
-      `;
+      const wasmRedirect = source.wasmBase
+        ? "var Module = { locateFile: function(path) { return " + JSON.stringify(source.wasmBase) + " + path; } };\n"
+        : '';
+      
+      const bootstrap =
+        wasmRedirect +
+        "try { importScripts(" + JSON.stringify(source.url) + "); } " +
+        "catch (e) { postMessage('__BOOT_ERROR__:' + (e && e.message ? e.message : e)); }";
       
       let worker;
       try {
         const blob = new Blob([bootstrap], { type: 'application/javascript' });
         worker = new Worker(URL.createObjectURL(blob));
-      } catch (e) {
-        clearTimeout(timeout);
-        reject(e);
-        return;
-      }
+      } catch (e) { reject(e); return; }
+
+      const timeoutMs = source.wasmBase ? 25000 : 12000;
+      const timeout = setTimeout(() => {
+        try { worker.terminate(); } catch (e2) {}
+        finish(reject, new Error('timed out loading engine'));
+      }, timeoutMs);
 
       const onUci = (e) => {
         const line = typeof e.data === 'string' ? e.data : (e.data && e.data.data) || '';
         if (!line) return;
-        
         if (line.indexOf('__BOOT_ERROR__') === 0) {
           worker.removeEventListener('message', onUci);
-          try { worker.terminate(); } catch(e){}
-          clearTimeout(timeout);
-          reject(new Error(line.replace('__BOOT_ERROR__:', '')));
+          try { worker.terminate(); } catch (e2) {}
+          finish(reject, new Error(line.replace('__BOOT_ERROR__:', '')));
           return;
         }
-
         if (line.indexOf('uciok') !== -1) {
           worker.removeEventListener('message', onUci);
           worker.postMessage('setoption name MultiPV value 2');
@@ -593,22 +620,18 @@ const engine = {
             const l2 = typeof e2.data === 'string' ? e2.data : (e2.data && e2.data.data) || '';
             if (l2.indexOf('readyok') !== -1) {
               worker.removeEventListener('message', onReady);
-              clearTimeout(timeout);
-              resolve(worker);
+              finish(resolve, worker);
             }
           };
           worker.addEventListener('message', onReady);
           worker.postMessage('isready');
         }
       };
-      
       worker.addEventListener('message', onUci);
       worker.onerror = (err) => {
-        try { worker.terminate(); } catch(e){}
-        clearTimeout(timeout);
-        reject(err);
+        try { worker.terminate(); } catch (e2) {}
+        finish(reject, new Error((err && err.message) ? err.message : 'worker error'));
       };
-      
       worker.postMessage('uci');
     });
   },
@@ -664,21 +687,28 @@ function waitForEngine() {
 }
 
 function setEngineStatus(state, text) {
+  if(!el.engineStatusText) return;
   el.engineStatusText.textContent = text;
-  el.engineStatusDot.className = 'w-2 h-2 rounded-full ' +
+  el.engineStatusDot.className = 'w-2.5 h-2.5 rounded-full ' +
     (state === 'ready' ? 'bg-green-500' : state === 'error' ? 'bg-red-500' : 'bg-yellow-400 animate-pulse');
   el.retryEngineBtn.classList.toggle('hidden', state !== 'error');
+  if (state === 'error' && engine.lastErrors && engine.lastErrors.length) {
+    el.engineStatusText.title = engine.lastErrors.join(' | ');
+  }
 }
 
 async function retryEngineInit() {
+  if(!el.retryEngineBtn) return;
   el.retryEngineBtn.classList.add('hidden');
-  setEngineStatus('loading', 'Retrying Stockfish 16...');
+  setEngineStatus('loading', 'Retrying engine…');
   const ok = await engine.init();
-  if (ok) setEngineStatus('ready', 'Engine: ' + engine.activeLabel);
+  if (ok) setEngineStatus('ready', engine.activeLabel ? ('Engine ready — ' + engine.activeLabel) : 'Engine ready');
   else setEngineStatus('error', 'Engine unavailable');
 }
 
-/* ================= AUDIO ================= */
+/* ============================================================
+   AUDIO
+============================================================ */
 let audioCtx = null;
 function getAudioCtx() {
   if (!audioCtx) {
@@ -701,11 +731,27 @@ function tone(freq, dur, type, startGain, delay) {
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     osc.connect(gain); gain.connect(ctx.destination);
     osc.start(t0); osc.stop(t0 + dur + 0.03);
-  } catch (e) {}
+  } catch (e) { }
+}
+function noiseBurst(dur, startGain) {
+  try {
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const size = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / size);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = startGain || 0.18;
+    src.connect(gain); gain.connect(ctx.destination);
+    src.start();
+  } catch (e) { }
 }
 function playMoveSound(opts) {
   opts = opts || {};
-  if (opts.isCapture) { tone(210, 0.07, 'square', 0.14, 0); }
+  if (opts.isCapture) { tone(210, 0.07, 'square', 0.14, 0); noiseBurst(0.06, 0.16); }
   else { tone(540, 0.055, 'sine', 0.15, 0); }
   if (opts.isCheck) tone(900, 0.13, 'triangle', 0.13, 0.06);
 }
@@ -713,7 +759,9 @@ function playGameEndSound() {
   [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, 'sine', 0.14, i * 0.12));
 }
 
-/* ================= PGN LOADING ================= */
+/* ============================================================
+   PGN LOADING
+============================================================ */
 function extractFirstPgn(text) {
   const first = text.indexOf('[Event ');
   if (first === -1) return text.trim();
@@ -730,14 +778,19 @@ function extractPgnHeaders(pgnText) {
   }
   return result;
 }
+function formatResultLabel(result) {
+  if (result === '1-0') return '1–0';
+  if (result === '0-1') return '0–1';
+  if (result === '1/2-1/2') return '½–½';
+  return result || '*';
+}
 
 function loadGameFromPGN(pgnText, meta) {
   const src = new Chess();
   const ok = src.load_pgn(pgnText, { sloppy: true });
-  if (!ok) throw new Error('Invalid PGN');
+  if (!ok) throw new Error('Invalid or unsupported PGN format');
   const hist = src.history({ verbose: true });
-  if (!hist.length) throw new Error('No moves in PGN');
-  
+  if (!hist.length) throw new Error('PGN contains no moves');
   const newHeaders = src.header() || {};
   const newGameMeta = Object.assign({ whiteAvatar: null, blackAvatar: null, endTime: null, source: null, rawPgn: null }, meta || {});
   if (!newGameMeta.endTime) newGameMeta.endTime = deriveDateFromHeaders(newHeaders);
@@ -755,15 +808,25 @@ function loadGameFromPGN(pgnText, meta) {
     const m = hist[i];
     const fenBeforeMove = replay.fen();
     const moveResult = replay.move(m.san);
-    if (!moveResult) throw new Error('Could not replay move ' + (i + 1));
+    if (!moveResult) throw new Error('Could not replay move ' + (i + 1) + ' (' + m.san + ')');
     newPositions.push(replay.fen());
     const fullmoveBefore = parseInt(fenBeforeMove.split(' ')[5], 10) || (Math.floor(i / 2) + 1);
     newMoveHistory.push({
-      ply: i + 1, moveNumber: fullmoveBefore, color: m.color, san: m.san,
-      from: m.from, to: m.to, piece: m.piece, captured: m.captured || null,
-      promotion: m.promotion || null, uci: m.from + m.to + (m.promotion || ''),
-      classification: null, moveAccuracy: null, wpl: null,
-      evalAfterWhiteCp: null, evalAfterMate: null
+      ply: i + 1,
+      moveNumber: fullmoveBefore,
+      color: m.color,
+      san: m.san,
+      from: m.from,
+      to: m.to,
+      piece: m.piece,
+      captured: m.captured || null,
+      promotion: m.promotion || null,
+      uci: m.from + m.to + (m.promotion || ''),
+      classification: null,
+      moveAccuracy: null,
+      wpl: null,
+      evalAfterWhiteCp: null,
+      evalAfterMate: null
     });
   }
 
@@ -796,17 +859,88 @@ function handleNewPgn(pgnText, meta) {
   runAnalysis();
 }
 
-/* ================= IMPORT API ================= */
+/* ============================================================
+   SAVE / EXPORT PGN
+============================================================ */
+function pgnResultTag(game) {
+  if (game.in_checkmate()) return game.turn() === 'w' ? '0-1' : '1-0';
+  if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition() || game.insufficient_material()) return '1/2-1/2';
+  return '*';
+}
+
+function buildPgnForDownload() {
+  if (playMode && playGame) {
+    const whiteLabel = humanColor === 'w' ? 'You' : 'Stockfish (local)';
+    const blackLabel = humanColor === 'w' ? 'Stockfish (local)' : 'You';
+    try {
+      playGame.header(
+        'Event', 'Play vs Engine',
+        'Site', 'BuddyChess2 (local)',
+        'Date', new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
+        'White', whiteLabel,
+        'Black', blackLabel,
+        'Result', pgnResultTag(playGame)
+      );
+      if (playStartFen && playStartFen !== START_FEN) {
+        playGame.header('SetUp', '1', 'FEN', playStartFen);
+      }
+    } catch (e) {}
+    return playGame.pgn({ max_width: 0 });
+  }
+  return gameMeta.rawPgn || null;
+}
+
+function sanitizeFilenamePart(s) {
+  return String(s || '').trim().replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'game';
+}
+
+function buildPgnFilename() {
+  if (playMode) {
+    const w = sanitizeFilenamePart(humanColor === 'w' ? 'You' : 'Stockfish');
+    const b = sanitizeFilenamePart(humanColor === 'w' ? 'Stockfish' : 'You');
+    return w + '_vs_' + b + '_' + new Date().toISOString().slice(0, 10) + '.pgn';
+  }
+  const h = headers || {};
+  const w = sanitizeFilenamePart(h.White || 'White');
+  const b = sanitizeFilenamePart(h.Black || 'Black');
+  let dateStr = '';
+  const d = gameMeta.endTime || deriveDateFromHeaders(h);
+  if (d) { try { dateStr = d.toISOString().slice(0, 10); } catch (e) {} }
+  return w + '_vs_' + b + (dateStr ? ('_' + dateStr) : '') + '.pgn';
+}
+
+function downloadCurrentPgn() {
+  const pgnText = buildPgnForDownload();
+  if (!pgnText) return;
+  const blob = new Blob([pgnText], { type: 'application/x-chess-pgn' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = buildPgnFilename();
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ============================================================
+   IMPORT — Chess.com / Lichess / Paste
+============================================================ */
 function setImportStatus(text, isError) {
+  if(!el.importStatus) return;
   el.importStatus.textContent = text;
-  el.importStatus.className = 'text-xs min-h-[16px] ' + (isError ? 'text-red-400' : 'text-green-400');
+  el.importStatus.className = 'text-xs min-h-[18px] ' + (isError ? 'text-red-400' : 'text-green-400');
+}
+function setBtnLoading(btn, loading, label) {
+  btn.disabled = loading;
+  btn.innerHTML = loading ? '<span class="spinner"></span> Loading…' : label;
 }
 
 let importBusy = false;
 function setImportControlsDisabled(disabled) {
-  el.fetchChesscomBtn.disabled = disabled;
-  el.fetchLichessBtn.disabled = disabled;
-  el.loadPgnBtn.disabled = disabled;
+  if(el.fetchChesscomBtn) el.fetchChesscomBtn.disabled = disabled;
+  if(el.fetchLichessBtn) el.fetchLichessBtn.disabled = disabled;
+  if(el.loadPgnBtn) el.loadPgnBtn.disabled = disabled;
 }
 
 async function fetchChesscomAvatar(username) {
@@ -818,39 +952,37 @@ async function fetchChesscomAvatar(username) {
   } catch (e) { return null; }
 }
 
+const RECENT_GAMES_LIMIT = 20;
+
 async function fetchChesscomGameList(username) {
   const archResp = await fetch('https://api.chess.com/pub/player/' + encodeURIComponent(username.toLowerCase()) + '/games/archives');
-  if (!archResp.ok) throw new Error('User not found');
+  if (!archResp.ok) throw new Error('User not found or API unavailable');
   const archJson = await archResp.json();
-  if (!archJson.archives || !archJson.archives.length) throw new Error('No games found');
-  
+  if (!archJson.archives || !archJson.archives.length) throw new Error('No games found for this user');
   const archives = archJson.archives.slice().reverse();
+  const maxArchivesToScan = 12;
   const collected = [];
-  // Limit to 3 most recent months to speed up
-  const maxArchives = Math.min(archives.length, 3);
-  
-  for (let i = 0; i < maxArchives && collected.length < 15; i++) {
+  for (let i = 0; i < archives.length && i < maxArchivesToScan && collected.length < RECENT_GAMES_LIMIT; i++) {
     const resp = await fetch(archives[i]);
     if (!resp.ok) continue;
     const json = await resp.json();
     const games = (json.games || []).slice().reverse();
     for (const g of games) {
       if (g.pgn) collected.push(g.pgn);
-      if (collected.length >= 15) break;
+      if (collected.length >= RECENT_GAMES_LIMIT) break;
     }
   }
-  if (!collected.length) throw new Error('No games found');
+  if (!collected.length) throw new Error('No games found for this user');
   return collected;
 }
 
 async function fetchLichessGameList(username) {
-  const resp = await fetch('https://lichess.org/api/games/user/' + encodeURIComponent(username) + '?max=15&pgnInJson=true', {
+  const resp = await fetch('https://lichess.org/api/games/user/' + encodeURIComponent(username) + '?max=' + RECENT_GAMES_LIMIT + '&pgnInJson=true', {
     headers: { 'Accept': 'application/x-ndjson' }
   });
-  if (!resp.ok) throw new Error('User not found');
+  if (!resp.ok) throw new Error('User not found or API unavailable');
   const text = await resp.text();
-  if (!text || !text.trim()) throw new Error('No games found');
-  
+  if (!text || !text.trim()) throw new Error('No games found for this user');
   const collected = [];
   text.split('\n').forEach(line => {
     line = line.trim();
@@ -858,9 +990,9 @@ async function fetchLichessGameList(username) {
     try {
       const obj = JSON.parse(line);
       if (obj && obj.pgn) collected.push(obj.pgn);
-    } catch (e) {}
+    } catch (e) { }
   });
-  if (!collected.length) throw new Error('No games found');
+  if (!collected.length) throw new Error('No games found for this user');
   return collected;
 }
 
@@ -868,30 +1000,31 @@ function gameListItemHtml(it, idx) {
   const h = it.headers || {};
   const white = h.White || 'White';
   const black = h.Black || 'Black';
-  const wElo = h.WhiteElo ? ' <span class="text-zinc-500">(' + escapeHtml(h.WhiteElo) + ')</span>' : '';
-  const bElo = h.BlackElo ? ' <span class="text-zinc-500">(' + escapeHtml(h.BlackElo) + ')</span>' : '';
-  const resultLabel = h.Result === '1-0' ? '1–0' : h.Result === '0-1' ? '0–1' : h.Result === '1/2-1/2' ? '½–½' : '*';
+  const wElo = h.WhiteElo ? ' <span class="text-zinc-500 font-normal">(' + escapeHtml(h.WhiteElo) + ')</span>' : '';
+  const bElo = h.BlackElo ? ' <span class="text-zinc-500 font-normal">(' + escapeHtml(h.BlackElo) + ')</span>' : '';
+  const resultLabel = formatResultLabel(h.Result);
   const d = deriveDateFromHeaders(h);
   let dateStr = '';
-  if (d) { try { dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch (e) {} }
-  
-  return `<button data-game-idx="${idx}" class="w-full text-left px-2 py-1.5 rounded bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/60 transition-colors">
-    <div class="flex items-center justify-between gap-2 text-xs">
-      <span class="truncate text-zinc-200 font-medium">${escapeHtml(white)}${wElo} <span class="text-zinc-500">vs</span> ${escapeHtml(black)}${bElo}</span>
-      <span class="flex-shrink-0 font-semibold text-zinc-300">${escapeHtml(resultLabel)}</span>
-    </div>
-    ${dateStr ? `<div class="text-[10px] text-zinc-500 mt-0.5">${escapeHtml(dateStr)}</div>` : ''}
-  </button>`;
+  if (d) { try { dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) {} }
+  return '<button data-game-idx="' + idx + '" class="w-full text-left px-2.5 py-2 rounded-lg bg-zinc-800/60 hover:bg-zinc-700/70 border border-zinc-700/60 transition-colors">' +
+    '<div class="flex items-center justify-between gap-2 text-xs">' +
+      '<span class="truncate text-zinc-200 font-medium">' + escapeHtml(white) + wElo + ' <span class="text-zinc-500 font-normal">vs</span> ' + escapeHtml(black) + bElo + '</span>' +
+      '<span class="flex-shrink-0 font-semibold text-zinc-300">' + escapeHtml(resultLabel) + '</span>' +
+    '</div>' +
+    (dateStr ? '<div class="text-[10px] text-zinc-500 mt-0.5">' + escapeHtml(dateStr) + '</div>' : '') +
+    '</button>';
 }
 
 function renderGameList(items, sourceLabel) {
   currentGameListItems = items;
-  el.gameListMeta.textContent = items.length + ' games · ' + sourceLabel;
-  el.gameListItems.innerHTML = items.map((it, idx) => gameListItemHtml(it, idx)).join('');
-  el.gameListItems.querySelectorAll('[data-game-idx]').forEach(btn => {
-    btn.addEventListener('click', () => loadGameFromList(parseInt(btn.dataset.gameIdx, 10)));
-  });
-  el.gameListWrap.classList.remove('hidden');
+  if(el.gameListMeta) el.gameListMeta.textContent = items.length + ' game' + (items.length === 1 ? '' : 's') + ' · ' + sourceLabel;
+  if(el.gameListItems) {
+    el.gameListItems.innerHTML = items.map((it, idx) => gameListItemHtml(it, idx)).join('');
+    el.gameListItems.querySelectorAll('[data-game-idx]').forEach(btn => {
+      btn.addEventListener('click', () => loadGameFromList(parseInt(btn.dataset.gameIdx, 10)));
+    });
+  }
+  if(el.gameListWrap) el.gameListWrap.classList.remove('hidden');
 }
 
 async function loadGameFromList(idx) {
@@ -900,7 +1033,7 @@ async function loadGameFromList(idx) {
   if (!item) return;
   importBusy = true;
   setImportControlsDisabled(true);
-  setImportStatus('Loading game...');
+  setImportStatus('Loading game…');
   try {
     let whiteAvatar = null, blackAvatar = null;
     if (item.source === 'chesscom') {
@@ -911,12 +1044,12 @@ async function loadGameFromList(idx) {
           h.Black ? fetchChesscomAvatar(h.Black) : null
         ]);
         whiteAvatar = avatars[0]; blackAvatar = avatars[1];
-      } catch (e) {}
+      } catch (e) { }
     }
-    handleNewPgn(item.pgn, { whiteAvatar, blackAvatar, source: item.source });
+    handleNewPgn(item.pgn, { whiteAvatar: whiteAvatar, blackAvatar: blackAvatar, source: item.source });
     setImportStatus('Game loaded ✓');
   } catch (err) {
-    setImportStatus('Error: ' + err.message, true);
+    setImportStatus('Error loading game: ' + err.message, true);
   } finally {
     importBusy = false;
     setImportControlsDisabled(false);
@@ -926,64 +1059,70 @@ async function loadGameFromList(idx) {
 async function fetchChesscom() {
   if (importBusy) return;
   const username = el.chesscomUsername.value.trim();
-  if (!username) { setImportStatus('Enter username', true); return; }
+  if (!username) { setImportStatus('Enter a Chess.com username first.', true); return; }
   importBusy = true;
-  el.fetchChesscomBtn.disabled = true;
-  el.gameListWrap.classList.add('hidden');
-  setImportStatus('Fetching from Chess.com...');
+  setBtnLoading(el.fetchChesscomBtn, true);
+  setImportControlsDisabled(true);
+  if(el.gameListWrap) el.gameListWrap.classList.add('hidden');
+  setImportStatus('Fetching recent games from Chess.com…');
   try {
     const pgns = await fetchChesscomGameList(username);
-    const items = pgns.map(pgn => ({ pgn, headers: extractPgnHeaders(pgn), source: 'chesscom' }));
+    const items = pgns.map(pgn => ({ pgn: pgn, headers: extractPgnHeaders(pgn), source: 'chesscom' }));
     renderGameList(items, 'Chess.com: ' + username);
-    setImportStatus('Pick a game below');
+    setImportStatus('Pick a game below to load it.');
   } catch (err) {
     setImportStatus('Error: ' + err.message, true);
   } finally {
     importBusy = false;
-    el.fetchChesscomBtn.disabled = false;
+    setBtnLoading(el.fetchChesscomBtn, false, 'Fetch');
+    setImportControlsDisabled(false);
   }
 }
 
 async function fetchLichess() {
   if (importBusy) return;
   const username = el.lichessUsername.value.trim();
-  if (!username) { setImportStatus('Enter username', true); return; }
+  if (!username) { setImportStatus('Enter a Lichess username first.', true); return; }
   importBusy = true;
-  el.fetchLichessBtn.disabled = true;
-  el.gameListWrap.classList.add('hidden');
-  setImportStatus('Fetching from Lichess...');
+  setBtnLoading(el.fetchLichessBtn, true);
+  setImportControlsDisabled(true);
+  if(el.gameListWrap) el.gameListWrap.classList.add('hidden');
+  setImportStatus('Fetching recent games from Lichess…');
   try {
     const pgns = await fetchLichessGameList(username);
-    const items = pgns.map(pgn => ({ pgn, headers: extractPgnHeaders(pgn), source: 'lichess' }));
+    const items = pgns.map(pgn => ({ pgn: pgn, headers: extractPgnHeaders(pgn), source: 'lichess' }));
     renderGameList(items, 'Lichess: ' + username);
-    setImportStatus('Pick a game below');
+    setImportStatus('Pick a game below to load it.');
   } catch (err) {
     setImportStatus('Error: ' + err.message, true);
   } finally {
     importBusy = false;
-    el.fetchLichessBtn.disabled = false;
+    setBtnLoading(el.fetchLichessBtn, false, 'Fetch');
+    setImportControlsDisabled(false);
   }
 }
 
 function loadPastedPgn() {
   if (importBusy) return;
   const text = el.pgnInput.value.trim();
-  if (!text) { setImportStatus('Paste PGN first', true); return; }
+  if (!text) { setImportStatus('Please paste a PGN first.', true); return; }
   importBusy = true;
   setImportControlsDisabled(true);
-  el.gameListWrap.classList.add('hidden');
+  if(el.gameListWrap) el.gameListWrap.classList.add('hidden');
   try {
     handleNewPgn(text);
     setImportStatus('PGN loaded ✓');
   } catch (err) {
-    setImportStatus('Error: ' + err.message, true);
+    setImportStatus('Error parsing PGN: ' + err.message, true);
   } finally {
     importBusy = false;
     setImportControlsDisabled(false);
   }
 }
 
-/* ================= ANALYSIS LOGIC ================= */
+/* ============================================================
+   CLASSIFICATION & ANALYSIS PIPELINE
+============================================================ */
 function isSacrifice(m, fenAfter) {
   const movedVal = PIECE_VALUES[m.piece] || 0;
   if (movedVal < 3) return false;
@@ -1026,6 +1165,7 @@ function classifyMoveAt(k) {
   const wpl = Math.max(0, moverWinBest - moverWinActual);
 
   const isBest = before.bestMove === m.uci;
+
   let legalCountBefore = 2;
   try { legalCountBefore = new Chess(fenBefore).moves().length; } catch (e) {}
 
@@ -1046,12 +1186,8 @@ function classifyMoveAt(k) {
     }
   }
 
-  // Simple book check
-  const sanHistory = moveHistory.slice(0, k + 1).map(x => x.san).join(' ');
-  let inBook = false;
-  for(const bookLine of OPENING_BOOK) {
-    if(sanHistory.startsWith(bookLine)) { inBook = true; break; }
-  }
+  const sanHistory = moveHistory.slice(0, k + 1).map(x => x.san);
+  const inBook = isBookMove(sanHistory, k + 1);
 
   if (inBook && (cls === 'best' || cls === 'excellent' || cls === 'good')) {
     cls = 'book';
@@ -1062,6 +1198,7 @@ function classifyMoveAt(k) {
       const moverSecondWin = sideToMove === 'w' ? secondWin : 100 - secondWin;
       if (moverWinBest - moverSecondWin > 10) cls = 'great';
     }
+
     const positionDecided = moverWinBest > 95 || moverWinBest < 5;
     if (
       (cls === 'best' || cls === 'great') &&
@@ -1079,6 +1216,7 @@ function classifyMoveAt(k) {
   m.moveAccuracy = moveAccuracyFromLoss(wpl);
   m.evalAfterWhiteCp = whiteCpActual;
   m.evalAfterMate = whiteMateActual;
+  m.bestMoveUci = before.bestMove;
 }
 
 function computeAccuracyAndBreakdown() {
@@ -1098,7 +1236,7 @@ function computeAccuracyAndBreakdown() {
 async function runAnalysis() {
   await waitForEngine();
   if (engine.failed) {
-    setReviewProgressMessage('Engine unavailable.');
+    setReviewProgressMessage('Engine unavailable — classifications & accuracy disabled (board and move list still work). Try "Retry" in the header.');
     return;
   }
   if (analysisInProgress) return;
@@ -1108,7 +1246,7 @@ async function runAnalysis() {
   analysisResults = new Array(positions.length).fill(null);
   moveHistory.forEach(m => { m.classification = null; m.moveAccuracy = null; m.wpl = null; });
   const depth = parseInt(el.depthSelect.value || '15', 10);
-  try { engine.worker.postMessage('ucinewgame'); } catch (e) {}
+  try { if(engine.worker) engine.worker.postMessage('ucinewgame'); } catch (e) {}
 
   for (let i = 0; i < positions.length; i++) {
     if (analysisCancelled) break;
@@ -1135,25 +1273,30 @@ async function runAnalysis() {
 }
 
 function showAnalysisProgress(show) {
-  el.analysisProgressWrap.classList.toggle('hidden', !show);
+  if(el.analysisProgressWrap) el.analysisProgressWrap.classList.toggle('hidden', !show);
 }
 function updateAnalysisProgress(done, total) {
   const pct = total ? Math.round((done / total) * 100) : 0;
-  el.analysisProgressBar.style.width = pct + '%';
-  el.analysisProgressText.textContent = `Analyzing... ${done}/${total}`;
+  if(el.analysisProgressBar) el.analysisProgressBar.style.width = pct + '%';
+  if(el.analysisProgressText) el.analysisProgressText.textContent = 'Analyzing… ' + done + '/' + total + ' (depth ' + el.depthSelect.value + ')';
 }
 function setReviewProgressMessage(text) {
-  el.analysisProgressWrap.classList.remove('hidden');
-  el.cancelAnalysisBtn.classList.add('hidden');
-  el.analysisProgressText.textContent = text;
-  el.analysisProgressBar.style.width = '0%';
+  if(el.analysisProgressWrap) {
+    el.analysisProgressWrap.classList.remove('hidden');
+    if(el.cancelAnalysisBtn) el.cancelAnalysisBtn.classList.add('hidden');
+    if(el.analysisProgressText) el.analysisProgressText.textContent = text;
+    if(el.analysisProgressBar) el.analysisProgressBar.style.width = '0%';
+  }
 }
 
-/* ================= RENDERING ================= */
+/* ============================================================
+   RENDERING — BOARD
+============================================================ */
+function squareFromFileRank(fileIdx, rank) { return 'abcdefgh'[fileIdx] + rank; }
+
 function renderBoard() {
-  const fen = playMode ? playGame.fen() : positions[currentPly];
-  if(!fen) return; // Safety check
-  
+  if(!el.board) return;
+  const fen = playMode ? (playGame ? playGame.fen() : START_FEN) : (positions[currentPly] || START_FEN);
   const board = fenToBoard(fen);
   let inCheck = false, turnColor = 'w', kingSquare = null;
   try {
@@ -1161,19 +1304,18 @@ function renderBoard() {
     turnColor = tmp.turn();
     inCheck = tmp.in_check();
   } catch (e) {}
-  
   if (inCheck) {
     outer:
     for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
       const p = board[r][c];
-      if (p && p.type === 'k' && p.color === turnColor) { kingSquare = 'abcdefgh'[c] + (8 - r); break outer; }
+      if (p && p.type === 'k' && p.color === turnColor) { kingSquare = squareFromFileRank(c, 8 - r); break outer; }
     }
   }
-  
   const lastMove = playMode ? playLastMove : (currentPly > 0 ? { from: moveHistory[currentPly - 1].from, to: moveHistory[currentPly - 1].to } : null);
   const badgeMove = (!playMode && currentPly > 0) ? moveHistory[currentPly - 1] : null;
   const legalToSquares = legalTargets.map(t => t.to);
 
+  el.board.style.setProperty('--sq-size', (el.board.clientWidth / 8) + 'px');
   el.board.innerHTML = '';
   const frag = document.createDocumentFragment();
 
@@ -1195,8 +1337,6 @@ function renderBoard() {
         const mv = legalTargets.find(t => t.to === square);
         div.classList.add((mv.flags.indexOf('c') !== -1 || mv.flags.indexOf('e') !== -1) ? 'move-capture' : 'move-dot');
       }
-      
-      // Coordinates
       if (row === 7) {
         const f = document.createElement('span');
         f.className = 'coord-file ' + (isLight ? 'coord-dark' : 'coord-light');
@@ -1209,18 +1349,11 @@ function renderBoard() {
         rr.textContent = square[1];
         div.appendChild(rr);
       }
-      
-      // Piece
       if (piece) {
-        // Safety check for piece type/color
-        if(PIECE_URLS[piece.color] && PIECE_URLS[piece.color][piece.type]) {
-            const pEl = createPieceElement(piece.color, piece.type);
-            if (playMode && playGame && piece.color === playGame.turn()) pEl.classList.add('cursor-pointer');
-            div.appendChild(pEl);
-        }
+        const pEl = createPieceElement(piece.color, piece.type);
+        if (playMode && playGame && piece.color === playGame.turn()) pEl.classList.add('cursor-pointer');
+        div.appendChild(pEl);
       }
-      
-      // Badge
       if (badgeMove && square === badgeMove.to && badgeMove.classification) {
         const info = CLASS_INFO[badgeMove.classification];
         const b = document.createElement('div');
@@ -1237,7 +1370,11 @@ function renderBoard() {
   el.board.appendChild(frag);
 }
 
+/* ============================================================
+   RENDERING — EVAL BAR / GRAPH
+============================================================ */
 function updateEvalDisplays() {
+  if(!el.evalBarWhite || !el.evalLabel) return;
   let cp = 0, mate = null;
   if (playMode) {
     cp = lastPlayEvalWhiteCp || 0;
@@ -1261,6 +1398,7 @@ function updateEvalDisplays() {
 
 function drawEvalGraph() {
   const canvas = el.evalGraph;
+  if(!canvas) return;
   const dpr = window.devicePixelRatio || 1;
   const cssW = canvas.clientWidth || 300;
   const cssH = canvas.clientHeight || 64;
@@ -1269,6 +1407,7 @@ function drawEvalGraph() {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cssW, cssH);
+
   ctx.fillStyle = '#1a1b1e';
   ctx.fillRect(0, 0, cssW, cssH);
 
@@ -1308,7 +1447,11 @@ function drawEvalGraph() {
   }
 }
 
+/* ============================================================
+   RENDERING — SIDEBAR
+============================================================ */
 function renderGameHeader() {
+  if(!el.gameHeader || !el.btnSavePgn) return;
   el.btnSavePgn.disabled = false;
   const h = headers || {};
   const white = h.White || 'White';
@@ -1318,49 +1461,45 @@ function renderGameHeader() {
   const result = h.Result || '*';
   const dateStr = formatDateTime(gameMeta.endTime);
 
-  let html = `<div class="flex items-center justify-between gap-2">
-    <div class="flex items-center gap-2 min-w-0">
-      ${avatarImgHtml(gameMeta.whiteAvatar, white)}
-      <span class="font-semibold text-zinc-100 text-sm truncate">${escapeHtml(white)}${wr}</span>
-    </div>
-    <span class="text-zinc-500 text-xs flex-shrink-0 px-1">${escapeHtml(result)}</span>
-    <div class="flex items-center gap-2 min-w-0 justify-end">
-      <span class="font-semibold text-zinc-100 text-sm truncate text-right">${escapeHtml(black)}${br}</span>
-      ${avatarImgHtml(gameMeta.blackAvatar, black)}
-    </div>
-  </div>`;
+  let html = '<div class="flex items-center justify-between gap-2">' +
+    '<div class="flex items-center gap-2 min-w-0">' +
+      avatarImgHtml(gameMeta.whiteAvatar, white) +
+      '<span class="font-semibold text-zinc-100 text-base truncate">' + escapeHtml(white) + wr + '</span>' +
+    '</div>' +
+    '<span class="text-zinc-500 text-xs flex-shrink-0 px-1">' + escapeHtml(result) + '</span>' +
+    '<div class="flex items-center gap-2 min-w-0 justify-end">' +
+      '<span class="font-semibold text-zinc-100 text-base truncate text-right">' + escapeHtml(black) + br + '</span>' +
+      avatarImgHtml(gameMeta.blackAvatar, black) +
+    '</div>' +
+    '</div>';
   if (h.Event || dateStr) {
-    html += `<div class="text-xs text-zinc-500 mt-1 text-center truncate">
-      ${(h.Event ? escapeHtml(h.Event) : '')}${(h.Event && dateStr) ? ' • ' : ''}${(dateStr ? escapeHtml(dateStr) : '')}
-    </div>`;
+    html += '<div class="text-xs text-zinc-500 mt-2 text-center truncate">' +
+      (h.Event ? escapeHtml(h.Event) : '') + (h.Event && dateStr ? ' • ' : '') + (dateStr ? escapeHtml(dateStr) : '') +
+      '</div>';
   }
   el.gameHeader.innerHTML = html;
 }
 
 function renderAccuracy() {
+  if(!el.accuracyWhiteVal || !el.accuracyBlackVal) return;
   const w = gameAccuracy.w, b = gameAccuracy.b;
   el.accuracyWhiteVal.textContent = w != null ? w.toFixed(1) + '%' : '—';
   el.accuracyBlackVal.textContent = b != null ? b.toFixed(1) + '%' : '—';
-  el.accuracyWhiteBar.style.width = (w || 0) + '%';
-  el.accuracyBlackBar.style.width = (b || 0) + '%';
+  if(el.accuracyWhiteBar) el.accuracyWhiteBar.style.width = (w || 0) + '%';
+  if(el.accuracyBlackBar) el.accuracyBlackBar.style.width = (b || 0) + '%';
 }
 
 function renderClassBreakdown() {
+  if(!el.classBreakdown) return;
   const counts = classCounts || { w: {}, b: {} };
   let html = '';
   CLASS_KEYS.forEach(k => {
     const info = CLASS_INFO[k];
     const wc = counts.w[k] || 0, bc = counts.b[k] || 0;
-    html += `<div class="flex items-center justify-between text-xs py-1.5 border-b border-zinc-800/60">
-      <span class="flex items-center gap-2">
-        <span class="inline-flex items-center justify-center rounded-full text-[10px] font-bold" style="background:${info.color};color:${info.text||'#fff'};width:20px;height:20px;">${info.symbol}</span>
-        <span class="text-zinc-300">${info.label}</span>
-      </span>
-      <span class="flex gap-3 tabular-nums text-zinc-400 font-medium">
-        <span class="w-4 text-right">${wc}</span>
-        <span class="w-4 text-right">${bc}</span>
-      </span>
-    </div>`;
+    html += '<div class="flex items-center justify-between text-sm py-2 border-b border-zinc-800/60">' +
+      '<span class="flex items-center gap-2.5"><span class="inline-flex items-center justify-center rounded-full text-[12px] font-bold" style="background:' + info.color + ';color:' + (info.text || '#fff') + ';width:24px;height:24px;">' + info.symbol + '</span><span class="text-zinc-300">' + info.label + '</span></span>' +
+      '<span class="flex gap-4 tabular-nums text-zinc-400 font-medium"><span class="w-6 text-right">' + wc + '</span><span class="w-6 text-right">' + bc + '</span></span>' +
+      '</div>';
   });
   el.classBreakdown.innerHTML = html;
 }
@@ -1368,35 +1507,36 @@ function renderClassBreakdown() {
 function moveButtonHtml(m) {
   const info = m.classification ? CLASS_INFO[m.classification] : null;
   const active = m.ply === currentPly;
-  return `<button data-ply="${m.ply}" class="move-item text-left text-[13px] px-2 py-1 rounded flex items-center gap-1.5 hover:bg-zinc-700/50 ${active ? 'bg-zinc-700/80 ring-1 ring-amber-400/50' : ''}">
-    <span class="text-zinc-200 font-medium">${escapeHtml(m.san)}</span>
-    ${info ? `<span class="inline-flex items-center justify-center rounded-full text-[8px] font-bold leading-none" style="background:${info.color};color:${info.text||'#fff'};width:15px;height:15px;">${info.symbol}</span>` : ''}
-  </button>`;
+  return '<button data-ply="' + m.ply + '" class="move-item text-left text-[15px] px-2 py-1.5 rounded flex items-center gap-1.5 hover:bg-zinc-700/50 ' + (active ? 'bg-zinc-700/80 ring-1 ring-amber-400/50' : '') + '">' +
+    '<span class="text-zinc-200 font-medium">' + escapeHtml(m.san) + '</span>' +
+    (info ? '<span class="inline-flex items-center justify-center rounded-full text-[10px] font-bold leading-none" style="background:' + info.color + ';color:' + (info.text || '#fff') + ';width:17px;height:17px;">' + info.symbol + '</span>' : '') +
+    '</button>';
 }
 
 function renderMoveList() {
+  if(!el.moveList) return;
   if (!moveHistory.length) {
-    el.moveList.innerHTML = '<p class="text-zinc-500 text-xs text-center py-8">No game loaded.</p>';
+    el.moveList.innerHTML = '<p class="text-zinc-500 text-sm text-center py-10">No game loaded yet.<br>Import a game to see moves here.</p>';
     return;
   }
   let html = '';
   let i = 0;
   if (moveHistory[0].color === 'b') {
-    html += `<div class="grid grid-cols-[1.5rem_1fr_1fr] items-center gap-1">
-      <span class="text-zinc-500 text-xs">${moveHistory[0].moveNumber}.</span>
-      <span class="text-zinc-600 text-xs italic px-2">…</span>
-      ${moveButtonHtml(moveHistory[0])}
-    </div>`;
+    html += '<div class="grid grid-cols-[2.1rem_1fr_1fr] items-center gap-1">' +
+      '<span class="text-zinc-500 text-sm">' + moveHistory[0].moveNumber + '.</span>' +
+      '<span class="text-zinc-600 text-sm italic px-2">…</span>' +
+      moveButtonHtml(moveHistory[0]) +
+      '</div>';
     i = 1;
   }
   for (; i < moveHistory.length; i += 2) {
     const w = moveHistory[i];
     const b = moveHistory[i + 1];
-    html += `<div class="grid grid-cols-[1.5rem_1fr_1fr] items-center gap-1">
-      <span class="text-zinc-500 text-xs">${w.moveNumber}.</span>
-      ${moveButtonHtml(w)}
-      ${b ? moveButtonHtml(b) : '<span></span>'}
-    </div>`;
+    html += '<div class="grid grid-cols-[2.1rem_1fr_1fr] items-center gap-1">' +
+      '<span class="text-zinc-500 text-sm">' + w.moveNumber + '.</span>' +
+      moveButtonHtml(w) +
+      (b ? moveButtonHtml(b) : '<span></span>') +
+      '</div>';
   }
   el.moveList.innerHTML = html;
   el.moveList.querySelectorAll('[data-ply]').forEach(btn => {
@@ -1404,7 +1544,9 @@ function renderMoveList() {
   });
 }
 
-/* ================= NAVIGATION & PLAY ================= */
+/* ============================================================
+   NAVIGATION
+============================================================ */
 function goToPly(n) {
   if (playMode) return;
   if (!moveHistory.length) return;
@@ -1425,21 +1567,28 @@ function goToPly(n) {
 
 function switchTab(name) {
   ['import', 'review', 'moves'].forEach(t => {
-    q('tab-' + t).classList.toggle('hidden', t !== name);
-    q('tabBtn-' + t).classList.toggle('tab-active', t !== name);
-    q('tabBtn-' + t).classList.toggle('tab-active', t === name);
+    const panel = q('tab-' + t);
+    const btn = q('tabBtn-' + t);
+    if(panel) panel.classList.toggle('hidden', t !== name);
+    if(btn) btn.classList.toggle('tab-active', t === name);
   });
 }
 
+/* ============================================================
+   PLAY VS ENGINE MODE
+============================================================ */
 function setPlayStatus(text) {
+  if (!el.playStatusBanner) return;
   if (!text) { el.playStatusBanner.classList.add('hidden'); return; }
   el.playStatusBanner.classList.remove('hidden');
   el.playStatusBanner.textContent = text;
 }
 
 function enterPlayMode() {
-  if (!engine.ready) { setPlayStatus('Engine loading...'); return; }
-  if (analysisInProgress) analysisCancelled = true;
+  if (!engine.ready) { setPlayStatus('Engine is still loading — please wait a moment.'); return; }
+  if (analysisInProgress) {
+    analysisCancelled = true;
+  }
   const fen = positions[currentPly];
   playGame = new Chess(fen);
   playStartFen = fen;
@@ -1453,14 +1602,20 @@ function enterPlayMode() {
     const side = fen.split(' ')[1];
     lastPlayEvalWhiteCp = toWhiteCp(curRes.best, side);
     lastPlayEvalMate = toWhiteMate(curRes.best, side);
+  } else if (currentPly > 0 && moveHistory[currentPly - 1] && moveHistory[currentPly - 1].evalAfterWhiteCp != null) {
+    lastPlayEvalWhiteCp = moveHistory[currentPly - 1].evalAfterWhiteCp;
+    lastPlayEvalMate = moveHistory[currentPly - 1].evalAfterMate;
   } else {
-    lastPlayEvalWhiteCp = 0; lastPlayEvalMate = null;
+    lastPlayEvalWhiteCp = 0;
+    lastPlayEvalMate = null;
   }
 
-  el.playControls.classList.remove('hidden');
-  el.playControls.classList.add('flex');
-  el.reviewControls.classList.add('hidden');
-  setPlayStatus('Play mode — You are ' + (humanColor === 'w' ? 'White' : 'Black'));
+  if(el.playControls) {
+    el.playControls.classList.remove('hidden');
+    el.playControls.classList.add('flex');
+  }
+  if(el.reviewControls) el.reviewControls.classList.add('hidden');
+  setPlayStatus('Play mode — you are ' + (humanColor === 'w' ? 'White' : 'Black') + '. Make your move.');
   renderBoard();
   updateEvalDisplays();
   drawEvalGraph();
@@ -1468,11 +1623,13 @@ function enterPlayMode() {
 
 function exitPlayMode(silent) {
   playMode = false; playGame = null; selectedSquare = null; legalTargets = []; pendingPromotion = null;
-  el.promotionPicker.classList.add('hidden');
+  if(el.promotionPicker) el.promotionPicker.classList.add('hidden');
   if (!silent) {
-    el.playControls.classList.add('hidden');
-    el.playControls.classList.remove('flex');
-    el.reviewControls.classList.remove('hidden');
+    if(el.playControls) {
+      el.playControls.classList.add('hidden');
+      el.playControls.classList.remove('flex');
+    }
+    if(el.reviewControls) el.reviewControls.classList.remove('hidden');
     setPlayStatus('');
     renderBoard();
     renderMoveList();
@@ -1512,6 +1669,7 @@ function handleSquareClick(square) {
 
 function showPromotionPicker(square, color) {
   pendingPromotion = { to: square, color: color, from: selectedSquare };
+  if(!el.promotionButtons) return;
   el.promotionButtons.innerHTML = '';
   ['q', 'r', 'b', 'n'].forEach(p => {
     const btn = document.createElement('button');
@@ -1523,16 +1681,16 @@ function showPromotionPicker(square, color) {
     btn.appendChild(img);
     el.promotionButtons.appendChild(btn);
   });
-  el.promotionPicker.classList.remove('hidden');
+  if(el.promotionPicker) el.promotionPicker.classList.remove('hidden');
 }
-
 function bindPromotionPicker() {
+  if(!el.promotionButtons) return;
   el.promotionButtons.addEventListener('click', (e) => {
     const btn = e.target.closest('.promo-btn');
     if (!btn || !pendingPromotion) return;
     const promo = btn.dataset.p;
     const from = pendingPromotion.from, to = pendingPromotion.to;
-    el.promotionPicker.classList.add('hidden');
+    if(el.promotionPicker) el.promotionPicker.classList.add('hidden');
     pendingPromotion = null;
     applyHumanMove(from, to, promo);
     clearSelection();
@@ -1556,7 +1714,7 @@ function applyHumanMove(from, to, promotion) {
 }
 
 async function requestEngineReply() {
-  setPlayStatus('Engine thinking...');
+  setPlayStatus('Engine is thinking…');
   const fenForSearch = playGame.fen();
   const searchSide = fenForSearch.split(' ')[1];
   try {
@@ -1592,52 +1750,41 @@ function showGameOverMessage() {
   setPlayStatus(msg);
 }
 
-function downloadCurrentPgn() {
-  let pgnText = gameMeta.rawPgn;
-  if(playMode && playGame) {
-     pgnText = playGame.pgn({ max_width: 0 });
-  }
-  if (!pgnText) return;
-  const blob = new Blob([pgnText], { type: 'application/x-chess-pgn' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'game.pgn';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-/* ================= INIT ================= */
+/* ============================================================
+   EVENT BINDING
+============================================================ */
 function bindEvents() {
-  el.board.addEventListener('click', (e) => {
-    const sqEl = e.target.closest('.square');
-    if (!sqEl) return;
-    handleSquareClick(sqEl.dataset.square);
-  });
+  if(el.board) {
+    el.board.addEventListener('click', (e) => {
+      const sqEl = e.target.closest('.square');
+      if (!sqEl) return;
+      handleSquareClick(sqEl.dataset.square);
+    });
+  }
 
-  el.btnFirst.addEventListener('click', () => goToPly(0));
-  el.btnPrev.addEventListener('click', () => goToPly(currentPly - 1));
-  el.btnNext.addEventListener('click', () => goToPly(currentPly + 1));
-  el.btnLast.addEventListener('click', () => goToPly(moveHistory.length));
-  el.btnFlip.addEventListener('click', () => { flipped = !flipped; renderBoard(); });
-  el.btnFlip2.addEventListener('click', () => { flipped = !flipped; renderBoard(); });
-  el.btnPlayEngine.addEventListener('click', enterPlayMode);
-  el.btnResetReview.addEventListener('click', () => exitPlayMode(false));
-  el.btnSavePgn.addEventListener('click', downloadCurrentPgn);
-  el.btnSavePgnPlay.addEventListener('click', downloadCurrentPgn);
-  el.cancelAnalysisBtn.addEventListener('click', () => { analysisCancelled = true; });
-  el.reanalyzeBtn.addEventListener('click', () => { if (moveHistory.length) runAnalysis(); });
-  el.retryEngineBtn.addEventListener('click', retryEngineInit);
+  if(el.btnFirst) el.btnFirst.addEventListener('click', () => goToPly(0));
+  if(el.btnPrev) el.btnPrev.addEventListener('click', () => goToPly(currentPly - 1));
+  if(el.btnNext) el.btnNext.addEventListener('click', () => goToPly(currentPly + 1));
+  if(el.btnLast) el.btnLast.addEventListener('click', () => goToPly(moveHistory.length));
+  if(el.btnFlip) el.btnFlip.addEventListener('click', () => { flipped = !flipped; renderBoard(); });
+  if(el.btnFlip2) el.btnFlip2.addEventListener('click', () => { flipped = !flipped; renderBoard(); });
+  if(el.btnPlayEngine) el.btnPlayEngine.addEventListener('click', enterPlayMode);
+  if(el.btnResetReview) el.btnResetReview.addEventListener('click', () => exitPlayMode(false));
+  if(el.btnSavePgn) el.btnSavePgn.addEventListener('click', downloadCurrentPgn);
+  if(el.btnSavePgnPlay) el.btnSavePgnPlay.addEventListener('click', downloadCurrentPgn);
+  if(el.cancelAnalysisBtn) el.cancelAnalysisBtn.addEventListener('click', () => { analysisCancelled = true; });
+  if(el.reanalyzeBtn) el.reanalyzeBtn.addEventListener('click', () => { if (moveHistory.length) runAnalysis(); });
+  if(el.retryEngineBtn) el.retryEngineBtn.addEventListener('click', retryEngineInit);
 
-  el.fetchChesscomBtn.addEventListener('click', fetchChesscom);
-  el.fetchLichessBtn.addEventListener('click', fetchLichess);
-  el.loadPgnBtn.addEventListener('click', loadPastedPgn);
-  
-  q('tabBtn-import').addEventListener('click', () => switchTab('import'));
-  q('tabBtn-review').addEventListener('click', () => switchTab('review'));
-  q('tabBtn-moves').addEventListener('click', () => switchTab('moves'));
+  if(el.fetchChesscomBtn) el.fetchChesscomBtn.addEventListener('click', fetchChesscom);
+  if(el.fetchLichessBtn) el.fetchLichessBtn.addEventListener('click', fetchLichess);
+  if(el.loadPgnBtn) el.loadPgnBtn.addEventListener('click', loadPastedPgn);
+  if(el.chesscomUsername) el.chesscomUsername.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchChesscom(); });
+  if(el.lichessUsername) el.lichessUsername.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchLichess(); });
+
+  if(q('tabBtn-import')) q('tabBtn-import').addEventListener('click', () => switchTab('import'));
+  if(q('tabBtn-review')) q('tabBtn-review').addEventListener('click', () => switchTab('review'));
+  if(q('tabBtn-moves')) q('tabBtn-moves').addEventListener('click', () => switchTab('moves'));
 
   bindPromotionPicker();
 
@@ -1647,16 +1794,21 @@ function bindEvents() {
     if (playMode) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); goToPly(currentPly + 1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); goToPly(currentPly - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); goToPly(0); }
+    else if (e.key === 'End') { e.preventDefault(); goToPly(moveHistory.length); }
   });
 
   window.addEventListener('resize', () => { renderBoard(); drawEvalGraph(); });
 }
 
-// Start
-initElements();
-bindEvents();
-renderBoard(); // Render empty board initially
-retryEngineInit(); // Load engine
+/* ============================================================
+   INIT
+============================================================ */
+window.onload = function() {
+  initElements();
+  bindEvents();
+  retryEngineInit(); // Start engine load
+};
 
 })();
 </script>
