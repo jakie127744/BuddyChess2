@@ -3,18 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>BuddyChess2 - Chess Review & Play</title>
+<title>BuddyChess2 - Advanced Analysis</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <style>
+  /* --- Core Styles --- */
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121315; color: #e4e4e7; }
+  
+  /* Scrollbar */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #18181b; }
   ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-  /* ===== Board ===== */
+  /* Board */
   #board {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
@@ -25,16 +28,21 @@
     overflow: hidden;
     box-shadow: 0 12px 36px -8px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,0.04);
     user-select: none;
+    position: relative;
   }
   .square { position: relative; display: flex; align-items: center; justify-content: center; }
   .square.light { background: #ebecd0; }
   .square.dark { background: #6f9152; }
+  
+  /* Highlights */
   .square.sq-highlight-from { background-color: rgba(255, 221, 0, 0.45) !important; }
   .square.sq-highlight-to { background-color: rgba(255, 221, 0, 0.55) !important; }
   .square.sq-selected::before {
-    content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 3px rgba(56,189,248,0.85); pointer-events: none;
+    content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 3px rgba(56,189,248,0.85); pointer-events: none; z-index: 5;
   }
   .square.sq-check { background: radial-gradient(circle, rgba(255,40,40,0.95) 0%, rgba(255,40,40,0.55) 45%, rgba(255,40,40,0) 75%) !important; }
+  
+  /* Move Indicators */
   .square.move-dot::after {
     content: ''; position: absolute; width: 30%; height: 30%; border-radius: 50%;
     background: rgba(20,20,20,0.28); pointer-events: none;
@@ -43,83 +51,91 @@
     content: ''; position: absolute; width: 86%; height: 86%; border-radius: 50%;
     border: 4px solid rgba(20,20,20,0.32); box-sizing: border-box; pointer-events: none;
   }
+
+  /* Coordinates */
   .coord-file { position: absolute; bottom: 1px; left: 3px; font-size: 9px; font-weight: 800; pointer-events:none; }
   .coord-rank { position: absolute; top: 1px; right: 3px; font-size: 9px; font-weight: 800; pointer-events:none; }
   .coord-dark { color: rgba(45,60,30,0.85); }
   .coord-light { color: rgba(230,236,210,0.9); }
 
+  /* Pieces */
   .piece-wrap {
     width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-    cursor: default; transition: transform .08s ease;
+    cursor: default; transition: transform .08s ease; z-index: 10;
   }
   .piece-wrap.cursor-pointer { cursor: grab; }
   .piece-wrap.cursor-pointer:hover { transform: scale(1.08); }
-  .piece-svg {
-    width: 82%; height: 82%; pointer-events: none; user-select: none;
-    filter: drop-shadow(0 3px 4px rgba(0,0,0,.45));
+  .piece-img {
+    width: 90%; height: 90%; pointer-events: none; user-select: none;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.3));
   }
 
+  /* Badges */
   .move-badge {
-    position: absolute; top: -10px; right: -10px;
-    width: clamp(26px, calc(var(--sq-size, 60px) * 0.46), 40px);
-    height: clamp(26px, calc(var(--sq-size, 60px) * 0.46), 40px);
+    position: absolute; top: -8px; right: -8px;
+    width: 24px; height: 24px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: clamp(13px, calc(var(--sq-size, 60px) * 0.24), 20px); font-weight: 800;
-    box-shadow: 0 3px 10px rgba(0,0,0,.75); border: 2.5px solid #0f1012; z-index: 25;
+    font-size: 12px; font-weight: 800;
+    box-shadow: 0 2px 6px rgba(0,0,0,.75); border: 2px solid #0f1012; z-index: 20;
   }
 
-  /* ===== Eval bar ===== */
+  /* Eval Bar */
   .eval-bar-track {
-    width: 26px; border-radius: 6px; overflow: hidden; background: #15161a; position: relative;
+    width: 28px; border-radius: 6px; overflow: hidden; background: #15161a; position: relative;
     display: flex; flex-direction: column-reverse; border: 1px solid #2a2b30; flex-shrink:0;
   }
   .eval-bar-white { width: 100%; background: #f1f1ec; height: 50%; transition: height .6s cubic-bezier(.4,0,.2,1); }
   .eval-label {
     position: absolute; left: 0; right: 0; text-align: center; font-size: 9px; font-weight: 800;
-    color: #0f1012; bottom: 3px; pointer-events:none;
+    color: #0f1012; bottom: 3px; pointer-events:none; z-index: 10;
   }
   .eval-label.label-top { color: #f1f1ec; top: 3px; bottom: auto; }
 
-  /* ===== misc ===== */
+  /* Utilities */
   .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display:inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .progress-track { width: 100%; height: 7px; background: #27272a; border-radius: 4px; overflow: hidden; }
   .progress-fill { height: 100%; background: linear-gradient(90deg,#3aab59,#81b64c); transition: width .2s ease; width:0%; }
+  
   .tab-btn { transition: color .15s, border-color .15s; border-bottom: 2px solid transparent; }
   .tab-btn.tab-active { color: #fafafa; border-bottom-color: #81b64c; }
+  
   .input-base {
     background: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 8px 10px;
     font-size: 13px; color: #e4e4e7; width: 100%; outline: none;
   }
   .input-base:focus { border-color: #71717a; }
+  
   .btn-primary { background: #4a7c33; color: #fff; font-weight: 600; border-radius: 8px; padding: 8px 14px; font-size: 13px; transition: background .15s; }
   .btn-primary:hover { background: #57903c; }
   .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  
   .btn-secondary { background: #27272a; color: #d4d4d8; font-weight: 600; border-radius: 8px; padding: 8px 12px; font-size: 13px; transition: background .15s; border: 1px solid #3f3f46; }
   .btn-secondary:hover { background: #3f3f46; }
-  .btn-secondary:disabled { opacity: .4; cursor: not-allowed; }
+  
   .icon-btn {
     width: 38px; height: 38px; border-radius: 8px; background: #1f2023; border: 1px solid #313236;
     display: flex; align-items: center; justify-content: center; color: #d4d4d8; transition: background .15s;
   }
   .icon-btn:hover { background: #2c2d31; }
   .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+  
   .promo-btn { width: 52px; height: 52px; border-radius: 8px; background: #2c2d31; border: 1px solid #46474c; display:flex; align-items:center; justify-content:center; }
   .promo-btn:hover { background: #3a3b40; }
-  .promo-btn .piece-svg { width: 70%; height: 70%; }
+  .promo-btn img { width: 80%; height: 80%; }
 </style>
 </head>
 <body class="bg-[#121315] text-zinc-200 min-h-screen">
 
-<!-- ===================== HEADER ===================== -->
+<!-- Header -->
 <header class="border-b border-zinc-800/80 bg-[#16171a]">
   <div class="max-w-[1500px] mx-auto px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-2">
       <span class="text-2xl">♟️</span>
       <div>
         <h1 class="text-lg font-bold leading-none text-zinc-50">BuddyChess2</h1>
-        <p class="text-[11px] text-zinc-500 leading-none mt-1">Local engine game analysis & play</p>
+        <p class="text-[11px] text-zinc-500 leading-none mt-1">Stockfish 16 NNUE Analysis</p>
       </div>
     </div>
     <div class="flex items-center gap-2 text-xs">
@@ -130,56 +146,57 @@
   </div>
 </header>
 
-<!-- ===================== MAIN ===================== -->
+<!-- Main Layout -->
 <main class="max-w-[1500px] mx-auto px-3 py-4 flex flex-col lg:flex-row gap-4 items-start">
 
-  <!-- BOARD COLUMN -->
+  <!-- Column 1: Board & Eval -->
   <div class="w-full lg:flex-1 flex justify-center">
     <div id="boardWrapper" class="w-full max-w-[620px] relative">
 
       <div id="playStatusBanner" class="hidden mb-2 text-center text-sm font-medium py-2 px-3 rounded-lg bg-zinc-800/80 border border-zinc-700 text-zinc-200"></div>
 
       <div class="flex gap-2.5">
+        <!-- Eval Bar -->
         <div id="evalBarTrack" class="eval-bar-track">
           <div id="evalBarWhite" class="eval-bar-white"></div>
           <span id="evalLabel" class="eval-label">0.0</span>
         </div>
+        <!-- Board -->
         <div id="board" class="flex-1"></div>
       </div>
 
-      <!-- promotion picker overlay -->
+      <!-- Promotion Picker -->
       <div id="promotionPicker" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-black/70 rounded-lg">
         <div id="promotionButtons" class="bg-zinc-800 rounded-xl p-3 flex gap-2 border border-zinc-600 shadow-2xl"></div>
       </div>
 
-      <!-- review nav controls -->
+      <!-- Controls -->
       <div id="reviewControls" class="flex items-center justify-center gap-2 mt-3 flex-wrap">
-        <button id="btnFirst" class="icon-btn" title="First move">⏮</button>
-        <button id="btnPrev" class="icon-btn" title="Previous (←)">◀</button>
-        <button id="btnNext" class="icon-btn" title="Next (→)">▶</button>
-        <button id="btnLast" class="icon-btn" title="Last move">⏭</button>
-        <button id="btnFlip" class="icon-btn" title="Flip board">⇅</button>
+        <button id="btnFirst" class="icon-btn" title="First">⏮</button>
+        <button id="btnPrev" class="icon-btn" title="Previous">◀</button>
+        <button id="btnNext" class="icon-btn" title="Next">▶</button>
+        <button id="btnLast" class="icon-btn" title="Last">⏭</button>
+        <button id="btnFlip" class="icon-btn" title="Flip">⇅</button>
         <button id="btnPlayEngine" class="btn-primary ml-2">▶ Play vs Engine</button>
       </div>
 
-      <!-- play mode controls -->
       <div id="playControls" class="hidden items-center justify-center gap-2 mt-3">
-        <button id="btnFlip2" class="icon-btn" title="Flip board">⇅</button>
-        <button id="btnSavePgnPlay" class="icon-btn" title="Save this game as PGN">⬇</button>
-        <button id="btnResetReview" class="btn-secondary">↩ Reset to Review</button>
+        <button id="btnFlip2" class="icon-btn" title="Flip">⇅</button>
+        <button id="btnSavePgnPlay" class="icon-btn" title="Save PGN">⬇</button>
+        <button id="btnResetReview" class="btn-secondary">↩ Exit Play</button>
       </div>
 
-      <!-- eval graph -->
+      <!-- Eval Graph -->
       <div class="mt-3">
         <canvas id="evalGraph" class="w-full h-16 rounded-lg bg-[#1a1b1e] border border-zinc-800 cursor-pointer"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- SIDEBAR -->
+  <!-- Column 2: Sidebar (Import, Review, Moves) -->
   <div class="w-full lg:w-[400px] flex-shrink-0 bg-[#17181b] border border-zinc-800 rounded-xl flex flex-col max-h-none lg:max-h-[calc(100vh-100px)] overflow-hidden">
-
-    <!-- tabs -->
+    
+    <!-- Tabs -->
     <div class="flex border-b border-zinc-800 px-2 text-sm flex-shrink-0">
       <button id="tabBtn-import" class="tab-btn px-3 py-3 font-medium text-zinc-400">Import</button>
       <button id="tabBtn-review" class="tab-btn px-3 py-3 font-medium text-zinc-400">Review</button>
@@ -187,29 +204,27 @@
     </div>
 
     <div class="overflow-y-auto flex-1 p-4">
-
-      <!-- ===== IMPORT TAB ===== -->
+      
+      <!-- Import Tab -->
       <div id="tab-import" class="tab-panel space-y-5">
         <div>
-          <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Chess.com username</label>
+          <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Chess.com Username</label>
           <div class="flex gap-2 mt-1.5">
             <input id="chesscomUsername" type="text" placeholder="e.g. hikaru" class="input-base">
-            <button id="fetchChesscomBtn" class="btn-primary whitespace-nowrap flex items-center gap-1.5">Fetch</button>
+            <button id="fetchChesscomBtn" class="btn-primary whitespace-nowrap">Fetch</button>
           </div>
         </div>
         <div>
-          <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Lichess username</label>
+          <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Lichess Username</label>
           <div class="flex gap-2 mt-1.5">
             <input id="lichessUsername" type="text" placeholder="e.g. DrNykterstein" class="input-base">
-            <button id="fetchLichessBtn" class="btn-primary whitespace-nowrap flex items-center gap-1.5">Fetch</button>
+            <button id="fetchLichessBtn" class="btn-primary whitespace-nowrap">Fetch</button>
           </div>
-          <p class="text-[11px] text-zinc-500 mt-1.5">Fetches a list of recent games to pick from.</p>
         </div>
 
-        <!-- recent-games picker, populated after a Fetch -->
         <div id="gameListWrap" class="hidden border-t border-zinc-800 pt-4 space-y-2">
           <div class="flex items-center justify-between">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Recent games</h3>
+            <h3 class="text-xs font-semibold text-zinc-400 uppercase">Recent Games</h3>
             <span id="gameListMeta" class="text-[11px] text-zinc-500"></span>
           </div>
           <div id="gameListItems" class="space-y-1.5 max-h-72 overflow-y-auto pr-1"></div>
@@ -217,17 +232,17 @@
 
         <div class="border-t border-zinc-800 pt-4">
           <label class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Paste PGN</label>
-          <textarea id="pgnInput" rows="7" placeholder="[Event &quot;Casual game&quot;]&#10;1. e4 e5 2. Nf3 Nc6 ..." class="input-base mt-1.5 font-mono text-xs resize-none"></textarea>
+          <textarea id="pgnInput" rows="6" placeholder="[Event ...]" class="input-base mt-1.5 font-mono text-xs resize-none"></textarea>
           <button id="loadPgnBtn" class="btn-primary mt-2 w-full">Load PGN</button>
         </div>
         <div id="importStatus" class="text-xs min-h-[18px]"></div>
       </div>
 
-      <!-- ===== REVIEW TAB ===== -->
+      <!-- Review Tab -->
       <div id="tab-review" class="tab-panel hidden space-y-5">
         <div class="flex items-start justify-between gap-2">
           <div id="gameHeader" class="text-sm flex-1 min-w-0"></div>
-          <button id="btnSavePgn" class="icon-btn flex-shrink-0" title="Save this game as PGN" disabled>⬇</button>
+          <button id="btnSavePgn" class="icon-btn flex-shrink-0" title="Save PGN" disabled>⬇</button>
         </div>
 
         <div id="analysisProgressWrap" class="hidden space-y-1.5">
@@ -238,17 +253,18 @@
           <div class="progress-track"><div id="analysisProgressBar" class="progress-fill"></div></div>
         </div>
 
-        <div id="reviewEmptyState" class="text-sm text-zinc-500 text-center py-10">Import a game to start the review.</div>
+        <div id="reviewEmptyState" class="text-sm text-zinc-500 text-center py-10">Import a game to start review.</div>
 
         <div id="reviewContent" class="hidden space-y-5">
           <div>
             <div class="flex items-center justify-between mb-1">
-              <span class="text-sm font-semibold text-zinc-300">⚪ White accuracy</span>
+              <span class="text-sm font-semibold text-zinc-300">⚪ White Accuracy</span>
               <span id="accuracyWhiteVal" class="text-xl font-bold text-zinc-100">—</span>
             </div>
             <div class="progress-track"><div id="accuracyWhiteBar" class="h-full bg-zinc-100 rounded-full transition-all duration-700" style="width:0%"></div></div>
+            
             <div class="flex items-center justify-between mb-1 mt-3">
-              <span class="text-sm font-semibold text-zinc-300">⚫ Black accuracy</span>
+              <span class="text-sm font-semibold text-zinc-300">⚫ Black Accuracy</span>
               <span id="accuracyBlackVal" class="text-xl font-bold text-zinc-100">—</span>
             </div>
             <div class="progress-track"><div id="accuracyBlackBar" class="h-full bg-zinc-500 rounded-full transition-all duration-700" style="width:0%"></div></div>
@@ -256,23 +272,22 @@
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Move breakdown</h3>
+              <h3 class="text-xs font-semibold text-zinc-400 uppercase">Move Breakdown</h3>
               <div class="flex items-center gap-2">
                 <select id="depthSelect" class="bg-zinc-800 border border-zinc-700 rounded text-[11px] px-1.5 py-1 text-zinc-300">
-                  <option value="10">Depth 10</option>
                   <option value="12">Depth 12</option>
                   <option value="15" selected>Depth 15</option>
+                  <option value="18">Depth 18</option>
                 </select>
                 <button id="reanalyzeBtn" class="text-[11px] text-zinc-500 hover:text-zinc-200 underline">Re-run</button>
               </div>
             </div>
-            <div class="flex justify-between text-xs text-zinc-500 px-1 mb-1"><span></span><span class="flex gap-4"><span class="w-6 text-right">W</span><span class="w-6 text-right">B</span></span></div>
             <div id="classBreakdown"></div>
           </div>
         </div>
       </div>
 
-      <!-- ===== MOVES TAB ===== -->
+      <!-- Moves Tab -->
       <div id="tab-moves" class="tab-panel hidden">
         <div id="moveList" class="space-y-0.5"></div>
       </div>
@@ -282,9 +297,9 @@
 </main>
 
 <footer class="max-w-[1500px] mx-auto px-4 pb-6 pt-2 text-center text-[11px] text-zinc-600">
-  Engine analysis runs locally in your browser via Stockfish (WebWorker). Keyboard: ← → to step through moves.
+  Powered by Stockfish 16 NNUE (WASM). Pieces from OpenGameArt.
 </footer>
 
-<script src="app.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
